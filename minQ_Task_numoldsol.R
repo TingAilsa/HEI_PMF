@@ -2,21 +2,9 @@
 library(dplyr)
 library(readr)
 
-# Construct the input file path
-input_file_path <- paste0("Cluster_", Cluster_number, "/Factor_", Factor_number, "/")
-
 #### 1. task number when the lowest Q-value is generated ####
-# Construct the input file name, input is the output from base model
-base_output_name <- paste0("CSN_C_", 
-                           Cluster_number, 
-                           "_F_", 
-                           Factor_number, 
-                           "_base.txt")
-
 # Access the input file name passed as an argument
 args <- commandArgs(trailingOnly = TRUE)
-input_file <- args[1]
-
 base_output <- args[1]
 
 # Determine the number of lines to read
@@ -49,7 +37,7 @@ param_files <- c("iniparams_BS.txt",
                  "iniparams_before_dual.txt", 
                  "iniparams_BS_DISP.txt")
 
-# Replace the value of XX in each file
+# Replace the value of numoldsol in each file
 for (file_path in param_files) {
   # Read the file
   param_lines <- read_lines(file_path)
@@ -62,7 +50,3 @@ for (file_path in param_files) {
   # Write the updated lines back to the file
   write_lines(param_lines, file_path)
 }
-
-## data for test
-# base_output = readLines("/Users/TingZhang/Downloads/PMF_no_GUI_copy/CSN_site_10730023_base.txt")
-# param_lines = readLines("/Users/TingZhang/Downloads/PMF_no_GUI/iniparams_BS_2.txt")
