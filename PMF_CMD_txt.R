@@ -54,13 +54,15 @@ create_dir(clusterNum, factorNum)
 #### B. prepare iniparams .txt files for PMF via CMD ####
 ##### B01: read the original iniparams files #####
 base_par = readLines("/Users/TingZhang/Downloads/PMF_no_GUI/iniparams_base_1.txt")
-base_par[30]
+base_par[29]; base_par[30]
 class(base_par[30])
 # np, line 30;
 # main data file, line 37; base_par[37]
 # output file, line 40; base_par[40]
-DISP_par = readLines("/Users/TingZhang/Downloads/PMF_no_GUI/iniparams_DISP_2or3.txt")
-BS_par = readLines("/Users/TingZhang/Downloads/PMF_no_GUI/iniparams_BS_2or3.txt")
+DISP_par = readLines("/Users/TingZhang/Downloads/PMF_no_GUI/iniparams_DISP_3.txt")
+BS_par = readLines("/Users/TingZhang/Downloads/PMF_no_GUI/iniparams_BS_2.txt")
+before_BS_DISP_par = readLines("/Users/TingZhang/Downloads/PMF_no_GUI/iniparams_BS_PHASE_of_BSDISP_4.txt")
+BS_DISP_par = readLines("/Users/TingZhang/Downloads/PMF_no_GUI/iniparams_BS-DISP_5.txt")
 
 ##### B02: other info preparation #####
 # read the information of all cluster
@@ -74,13 +76,14 @@ factor.number = c(6:11)
 
 for(i in 1:length(cluster.NO)){
   ## info of selected cluster
-  cluster_info = cluster_sum[cluster_sum$Final.decision == i]
-  cluster_info = 
+  # cluster_info = cluster_sum[cluster_sum$Final.decision == i]
+  # cluster_info = 
   
-  cluster.row = cluster_info$row.NO[Final.decision == i]
+  # cluster.row = cluster_info$row.NO[Final.decision == i]
   ## data of bad, weak, strong variables for selected cluster
   
-  
+  cluster.row = 3890
+  variable.NO = 36
   
 ##### B1: iniparams for Base run #####
   # create and replace the name of input file
@@ -101,7 +104,7 @@ for(i in 1:length(cluster.NO)){
   for (j in 1:length(factor.number)){
     factor.no = factor.number[j]
     # output path
-    path.CF = paste0(pathway, "/Cluster_", i, "/Factor_", (j+5), "/")
+    path.CF = paste0(pathway, "Cluster_", i, "/Factor_", (j+5), "/")
     
     base_par[30] = gsub("7", 
                         factor.no, 
@@ -110,12 +113,9 @@ for(i in 1:length(cluster.NO)){
     base_par[40] = gsub("CSN_site_10730023_", 
                         base.output, 
                         base_par[40])
-    base.param.name = paste0("iniparams_base_CSN_C_", 
-                             cluster.NO[i], "_F_", 
-                             factor.no, ".txt")
-    
+
     write.table(base_par, 
-                file = paste0(path.CF, base.param.name), 
+                file = paste0(path.CF, "iniparams_base.txt"), 
                 sep = "\t",
                 quote = FALSE,
                 row.names = FALSE,
@@ -147,6 +147,8 @@ for(i in 1:length(cluster.NO)){
   # replace the number of factors to use and name of output files
   for (j in 1:length(factor.number)){
     factor.no = factor.number[j]
+    path.CF = paste0(pathway, "Cluster_", i, "/Factor_", (j+5), "/")
+    
     BS_par[30] = gsub("7", 
                       factor.no, 
                       BS_par[30])
@@ -154,12 +156,9 @@ for(i in 1:length(cluster.NO)){
     BS_par[40] = gsub("CSN_site_10730023_BS_", 
                       BS.output, 
                       BS_par[40])
-    BS.param.name = paste0("iniparams_BS_CSN_C_", 
-                           cluster.NO[i], "_F_", 
-                           factor.no, ".txt")
-    
+
     write.table(BS_par, 
-                file = BS.param.name, 
+                file = paste0(path.CF,"iniparams_BS.txt"), 
                 sep = "\t",
                 quote = FALSE,
                 row.names = FALSE,
@@ -191,6 +190,8 @@ for(i in 1:length(cluster.NO)){
   # replace the number of factors to use and name of output files
   for (j in 1:length(factor.number)){
     factor.no = factor.number[j]
+    path.CF = paste0(pathway, "Cluster_", i, "/Factor_", (j+5), "/")
+    
     DISP_par[30] = gsub("7", 
                       factor.no, 
                       DISP_par[30])
@@ -200,28 +201,78 @@ for(i in 1:length(cluster.NO)){
                       DISP_par[40])
 
     ###### B3.2 iniparams - DISP: DISPBCMASK ######
-    dispbcmask = "0\t0\t1\t1\t1\t1\t1\t1\t1\t1\t0\t1\t1\t1\t0\t1\t1\t1\t0\t0\t0\t0\t1\t1\t0\t1\t0\t1\t0"
-    dispbcmask_use = rep(dispbcmask, factor.no)
-    newContents <- c(contents[1:index], newLines, contents[(index+1):length(contents)])
+    #dispbcmask = "0\t0\t1\t1\t1\t1\t1\t1\t1\t1\t0\t1\t1\t1\t0\t1\t1\t1\t0\t0\t0\t0\t1\t1\t0\t1\t0\t1\t0"
+    #dispbcmask_use = rep(dispbcmask, factor.no)
+    #newContents <- c(contents[1:index], newLines, contents[(index+1):length(contents)])
     
-    DISP_par_try[69] = dispbcmask_use
+    #DISP_par_try[69] = dispbcmask_use
     
-    DISP_par_try[69]
-    DISP_par_try[64:74]
-    DISP_par[69]
-    DISP_par[64:74]
+    #DISP_par_try[69]
+    #DISP_par_try[64:74]
+    #DISP_par[69]
+    #DISP_par[64:74]
     
-    
-    DISP.param.name = paste0("iniparams_DISP_CSN_C_", 
-                             cluster.NO[i], "_F_", 
-                             factor.no, ".txt")
     
     write.table(DISP_par, 
-                file = DISP.param.name, 
+                file = paste0(path.CF, "iniparams_DISP.txt"), 
                 sep = "\t",
                 quote = FALSE,
                 row.names = FALSE,
                 col.names = FALSE)
+  }
+    
+    ##### B4.1: iniparams for BS-DISP run #####
+    # create and replace the name of input file
+    BS_DISP.input.1 = paste0("CSN_C_", cluster.NO[i], "_conc_unc.csv")
+    BS_DISP_par[37] = gsub("CSN_site_10730023_conc_unc_PMF_CMD.csv", 
+                        BS_DISP.input.1, 
+                        BS_DISP_par[37])
+    
+    BS_DISP.input.2 = paste0("CSN_C_", cluster.NO[i], "_F_", factor.no, "_.dat")
+    BS_DISP_par[37] = gsub("CSN_site_10730023_.dat", 
+                        BS_DISP.input.2, 
+                        BS_DISP_par[37])
+    
+    # change n1 & n2, the number of rows and variables
+    BS_DISP_par[30] = gsub("293", 
+                        cluster.row, 
+                        BS_DISP_par[30])
+    BS_DISP_par[30] = gsub("29", 
+                        variable.NO, 
+                        BS_DISP_par[30])
+    
+    # replace the number of factors to use and name of output files
+    for (j in 1:length(factor.number)){
+      factor.no = factor.number[j]
+      path.CF = paste0(pathway, "Cluster_", i, "/Factor_", (j+5), "/")
+      
+      BS_DISP_par[30] = gsub("7", 
+                          factor.no, 
+                          BS_DISP_par[30])
+      BS_DISP.output = paste0("CSN_C_", cluster.NO[i], "_F_", factor.no, "_BS_DISP_")
+      BS_DISP_par[40] = gsub("CSN_site_10730023__BS_DISP_", 
+                          BS_DISP.output, 
+                          BS_DISP_par[40])
+      
+      ###### B4.2 iniparams - BS_DISP: BS_DISPBCMASK ######
+      #BS_DISPbcmask = "0\t0\t1\t1\t1\t1\t1\t1\t1\t1\t0\t1\t1\t1\t0\t1\t1\t1\t0\t0\t0\t0\t1\t1\t0\t1\t0\t1\t0"
+      #BS_DISPbcmask_use = rep(BS_DISPbcmask, factor.no)
+      #newContents <- c(contents[1:index], newLines, contents[(index+1):length(contents)])
+      
+      #BS_DISP_par_try[69] = BS_DISPbcmask_use
+      
+      #BS_DISP_par_try[69]
+      #BS_DISP_par_try[64:74]
+      #BS_DISP_par[69]
+      #BS_DISP_par[64:74]
+      
+      
+      write.table(BS_DISP_par, 
+                  file = paste0(path.CF, "iniparams_BS_DISP.txt"), 
+                  sep = "\t",
+                  quote = FALSE,
+                  row.names = FALSE,
+                  col.names = FALSE)
   }
 }
 
