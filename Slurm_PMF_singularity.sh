@@ -50,7 +50,7 @@ rm iniparams.txt
 
 # 2. Analyze the output .txt file, generate the new value for numoldsol, and replace it in other iniparams.txt series usi$
 mv CSN_C_${Cluster_number}_F_${Cluster_number}_.txt CSN_C_${Cluster_number}_F_${Factor_number}_base.txt
-Rscript ../minQ_Task_numoldsol.R CSN_C_${Cluster_number}_F_${Factor_number}_base.txt
+Rscript /projects/HAQ_LAB/tzhang/pmf_no_gui/file_try/minQ_Task_numoldsol.R CSN_C_${Cluster_number}_F_${Factor_number}_base.txt
 
 # 3. PMF BS, DISP, and BS-DISP analyses 
 for param_file in iniparams_BS.txt iniparams_DISP.txt #iniparams_before_dualc.txt iniparams_BS_DISP.txt

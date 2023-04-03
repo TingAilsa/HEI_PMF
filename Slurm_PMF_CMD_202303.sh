@@ -24,6 +24,7 @@
 #load modules
 module load r  #will load default r version
 module load dosbox
+# module load singularity
 
 # Define the DOS command to be used
 DOS_COMMAND="ME-2 PMF_bs_6f8xx_sealed_GUI_MOD.ini"
@@ -43,13 +44,13 @@ $DOS_COMMAND
 rm iniparams.txt 
 
 # 2. Analyze the output .txt file, generate the new value for numoldsol, and replace it in other iniparams.txt series using R
-mv CSN_C_${city_number}_F_${Cluster_number}_.txt CSN_C_${city_number}_F_${Factor_number}_base.txt
-Rscript ../minQ_Task_numoldsol.R CSN_C_${city_number}_F_${Factor_number}_base.txt
+mv CSN_C_${Cluster_number}_F_${Cluster_number}_.txt CSN_C_${Cluster_number}_F_${Factor_number}_base.txt
+Rscript /projects/HAQ_LAB/tzhang/pmf_no_gui/file_try/minQ_Task_numoldsol.R CSN_C_${Cluster_number}_F_${Factor_number}_base.txt
 
 # 3. Run DOS command for BS, DISP, and BS-DISP analyses in turn 
 for param_file in iniparams_BS.txt iniparams_DISP.txt iniparams_BS_DISP.txt
 do
   cp ${param_file} iniparams.txt
-  DOS_COMMAND 
+  $DOS_COMMAND 
   rm iniparams.txt
 done
