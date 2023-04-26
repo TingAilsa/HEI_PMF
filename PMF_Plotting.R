@@ -210,6 +210,7 @@ ggplot(site_ts,
         axis.text.y = element_text(color="grey25", size = 11, angle = 0, hjust = 0.5))
 
 #### plotting - factor percent contribution to PM2.5 ####
+# stripe, https://coolbutuseless.github.io/package/ggpattern/articles/pattern-stripe.html
 
 library(ggpattern)
 
