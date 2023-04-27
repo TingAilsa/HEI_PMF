@@ -11,6 +11,7 @@ cluster.study = "Cluster6"
 # cluster.study = "Cluster24"
 
 # there is formatting wrong in date due to influence of excel, so use the date from concentration file
+# csn_conc = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/CSN_PMF_Try_data/EPA MDL/CSN_Cluster6_2011-14_PMF_conc_EPAmdl.csv")
 csn_conc = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/CSN_PMF_Try_data/EPA MDL/CSN_Cluster6_2011-14_PMF_conc_EPAmdl.csv")
 csn_pmf_base$Date = csn_conc$Date
 csn_pmf_base$Date = as.Date(csn_pmf_base$Date)

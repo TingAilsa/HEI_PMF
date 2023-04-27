@@ -106,14 +106,14 @@ head(site_conc_perc)
 site_conc_perc = subset(site_conc_perc,
                         Species != "PM25")
 
-site_conc_perc$value.fake = 0
+# site_conc_perc$value.fake = 0
 
 ggplot(site_conc_perc, 
        aes(x = reorder(Species, sequence), 
            group = Factor)) +
   facet_grid(Factor ~.) +
   # geom_bar( aes(y = value.fake), stat="identity")+
-  geom_point( aes(y = Percent), color = "black", shape = 15) +
+  geom_point( aes(y = Percent), color = "black", shape = 16) +
   scale_y_continuous(
     position = "right",
     name = "% of Species"
@@ -135,11 +135,12 @@ ggplot(site_conc_perc,
        aes(x = reorder(Species, sequence), 
            group = Factor)) +
   facet_grid(Factor ~.) +
-  geom_point( aes(y = Percent), color = "black", shape = 15) +
+  geom_point( aes(y = Percent), color = "black", shape = 16) +
   scale_y_continuous(
     position = "right",
-    name = "% of Species"
-  ) +
+    name = "% of Species",
+    limits=c(0, 80),
+    breaks = c(0, 25, 50, 75),) +
   theme_classic() +
   theme(panel.grid = element_line(colour = "white"),
         plot.title = element_text(hjust = 0.05, vjust = -25, size = 16),
