@@ -22,7 +22,9 @@ species_class$X = NULL
 
 #### Factor - concentration contributions ####
 # read dataset of concentration contributions for each factor
-site_conc = read.csv("C6S3F8_base_Concentration.csv")
+# site_conc = read.csv("C6S3F8_base_Concentration.csv")
+# site_conc = read.csv("C6S3F8_base_Concentration_291.csv")
+# site_conc = read.csv("C6S3F9_base_Concentration_291.csv")
 colnames(site_conc)[1] = "Species"
 
 # replace species names
@@ -47,7 +49,9 @@ site_conc = merge(site_conc,
 
 #### Factor - Percent contributions ####
 # read dataset of percent contributions for each factor
-site_perc = read.csv("C6S3F8_base_Percent.csv")
+# site_perc = read.csv("C6S3F8_base_Percent.csv")
+# site_perc = read.csv("C6S3F8_base_Percent_291.csv")
+# site_perc = read.csv("C6S3F9_base_Percent_291.csv")
 colnames(site_perc)[1] = "Species"
 
 # replace species names
@@ -72,13 +76,18 @@ site_perc = merge(site_perc,
 
 #### Factor - time-series ####
 # read dataset of concentration contributions for each factor
-site_ts = read.csv("C6S3F8_base_TimeSeries.csv")
+# site_ts = read.csv("C6S3F8_base_TimeSeries.csv")
+# site_ts = read.csv("C6S3F7_base_TimeSeries_291.csv")
+# site_ts = read.csv("C6S3F8_base_TimeSeries_291.csv")
+# site_ts = read.csv("C6S3F9_base_TimeSeries_291.csv")
 colnames(site_ts)[1] = "Date"
 site_ts$Date = as.Date(site_ts$Date, format = "%m/%d/%y")
 
 # match with PM2.5 concentration
 site_ts_PM = site_ts
-site_PM = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/CSN_PMF_Try_data/Top_PM_cluster&site/CSN_C6_S3_2011-14_conc.csv")
+# site_PM = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/CSN_PMF_Try_data/Top_PM_cluster&site/CSN_C6_S3_2011-14_conc.csv")
+site_PM = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/CSN_PMF_Try_data/Top_PM_cluster&site/C-subgroup/CSN_C6_S3_2011-14_conc.csv")
+site_PM = subset(site_PM, !(Date %in% c("2011-07-05", "2011-12-29", "2012-07-05")))
 site_ts_PM$PM2.5 = site_PM$PM25
 site_ts_PM$Date = NULL
 
@@ -97,6 +106,7 @@ colnames(site_ts_PM_lm_beta) = "lm.beta.site-SiteBased"
 site_ts_PM_lm_beta$Factor = rownames(site_ts_PM_lm_beta)
 site_ts_PM_lm_beta$Factor.contribution = (site_ts_PM_lm_beta$lm.beta.site/
                                                    sum(site_ts_PM_lm_beta$lm.beta.site))*100
+site_ts_PM_lm_beta
 
 #### plotting - Concentration & percent contribution ####
 
@@ -139,7 +149,7 @@ ggplot(site_conc_perc,
   scale_y_continuous(
     position = "right",
     name = "% of Species",
-    limits=c(0, 80),
+    limits=c(0, 100),
     breaks = c(0, 25, 50, 75),) +
   theme_classic() +
   theme(panel.grid = element_line(colour = "white"),
@@ -169,7 +179,7 @@ ggplot(site_conc_perc,
             stat="identity", width = 0.6)+
   scale_y_log10() + 
   scale_y_continuous(trans = mylog_trans(base=10, from=-5)) +
-  scale_fill_nejm() +
+  scale_fill_npg() +
   theme_bw() +
   theme(panel.grid = element_line(colour = "white"),
         plot.title = element_text(hjust = 0.05, vjust = -25, size = 16),
@@ -196,10 +206,10 @@ ggplot(site_conc_perc,
 ggplot(site_ts, 
        aes(x = Date, y = Contribution, 
            group = Factor, color = Factor)) +
-  facet_grid(Factor ~.) +
+  facet_grid(Factor ~., scales = "free_y") +
   geom_line(alpha = 0.8)+
   geom_point(size = 0.5) +
-  scale_color_nejm() +
+  scale_color_npg() +
   theme_bw() +
   theme(panel.grid = element_line(colour = "white"),
         plot.title = element_text(hjust = 0.05, vjust = -25, size = 16),
@@ -218,10 +228,10 @@ library(ggpattern)
 ggplot(site_ts_PM_lm_beta, 
        aes(x = Factor, y = Factor.contribution)) +
  # geom_bar(stat="identity", width = 0.2) +    
-  geom_col_pattern(aes(pattern_fill = Factor),  # fill = Factor
-                   width = 0.2, fill = "white",
+  geom_col_pattern(aes(fill = Factor),  # fill = Factor # pattern_fill
+                   width = 0.2, pattern_fill = "white",pattern_color = NA,
                    pattern = 'stripe', pattern_density = 0.5) +
-  scale_fill_nejm() +
+  scale_fill_npg() +
   scale_y_continuous(position = "right") +
   theme_bw() +
   theme(panel.grid.major.x = element_line(colour="grey60", linetype="dashed"),
@@ -229,13 +239,11 @@ ggplot(site_ts_PM_lm_beta,
         panel.grid.major.y = element_blank(),
         axis.text.x = element_text(color="grey25", size = 11, angle = 90, hjust = 0.5, vjust = 0), 
         axis.text.y = element_text(color="grey25", size = 11, angle = 90, hjust = 0.5))
-
-
 
 ggplot(site_ts_PM_lm_beta, 
        aes(x = Factor, y = Factor.contribution, fill = Factor)) +
-  geom_bar(stat="identity", width = 0.2, pattern_fill = "slashes") +    
-  scale_fill_nejm() +
+  geom_bar( stat="identity", width = 0.4) +
+  scale_fill_npg() +
   scale_y_continuous(position = "right") +
   theme_bw() +
   theme(panel.grid.major.x = element_line(colour="grey60", linetype="dashed"),
@@ -243,5 +251,4 @@ ggplot(site_ts_PM_lm_beta,
         panel.grid.major.y = element_blank(),
         axis.text.x = element_text(color="grey25", size = 11, angle = 90, hjust = 0.5, vjust = 0), 
         axis.text.y = element_text(color="grey25", size = 11, angle = 90, hjust = 0.5))
-
 
