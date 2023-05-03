@@ -15,16 +15,13 @@ require(dplyr)
 require(plyr)
 require(lubridate)
 library(data.table)
-
-library(maps) 
-library(usmap)
 library(ggrepel)
-library(ggsci)
 
+library(ggplot2)
 library(ggpubr)
 library(gridExtra) #grid.arrange{}
 library(grid) #textGrob{}
-library(ggplot2)
+library(ggsci)
 
 #### FINISHED -- data match and extract -- FINISHED ####
 pm_whole_speciate = read.csv("SPECIATE_PM2.5ProfileSimplified.csv")
