@@ -124,7 +124,7 @@ for (cluster.No in 25) { # 1:25
                month(Date) %in% c(9, 10, 11) ~ "Fall"
              ),
              Month = month(Date))
-    
+     
     ts_annual_plot = ddply(base_ts_plot, 
                            .(Year, SiteCode, Factor),
                            summarise,
