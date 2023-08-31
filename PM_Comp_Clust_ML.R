@@ -29,11 +29,13 @@ library(USAboundaries)
 #############################################################
 #### interpolation for IMPROVE data only ####
 #############################################################
-cty_rural_urban = read.csv("/Users/ztttttt/Dropbox/HEI_PMF_files_Ting/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
+cty_rural_urban = read.csv("/Users/ztttttt/Dropbox/HEI_US_PMF/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
+cty_rural_urban = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
 cty_rural_urban$X = cty_rural_urban$X.1 = NULL
 
 # imp_daily = read.csv("/Users/TingZhang/Dropbox/HEI_PMF_files_Ting/IMPROVE_Component_with_missing.csv")
 imp_daily = read.csv("/Users/ztttttt/Documents/HEI PMF/R - original IMPROVE/IMPROVE_interpulation_random-forest_afterLog.csv")
+imp_daily = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/IMPROVE_interpulation_random-forest_afterLog.csv")
 imp_daily$X = imp_daily$X.1 = NULL
 imp_daily$Date = as.Date(imp_daily$Date)
 sapply(imp_daily, class)
@@ -177,6 +179,7 @@ imp_daily$X = imp_daily$X.1 = NULL
 imp_daily$Date = as.Date(imp_daily$Date)
 sapply(imp_daily, class)
 head(imp_daily)
+length(unique(imp_daily$SiteCode))
 
 # import CSN
 csn_daily_before = read.csv("/Users/ztttttt/Documents/HEI PMF/R - original IMPROVE/CSN_interpulation_random-forest_afterLog_before_2015.csv")
@@ -184,6 +187,7 @@ csn_daily_after = read.csv("/Users/ztttttt/Documents/HEI PMF/R - original IMPROV
 csn_daily_before$X = csn_daily_after$X = NULL
 csn_daily_before$Date = as.Date(csn_daily_before$Date)
 csn_daily_after$Date = as.Date(csn_daily_after$Date)
+
 
 # remove items not to be used
 imp_remove = c("ammNO3", "ammSO4", "EC1", "EC2", "EC3",  
@@ -234,6 +238,8 @@ setDT(csn_daily_after)
 
 imp_csn_daily = rbind(imp_daily, csn_daily_before, csn_daily_after)
 # write.csv(imp_csn_daily, "IMPROVE_CSN_joint_PM_species.csv")
+length(unique(imp_daily$SiteCode))
+length(unique(imp_csn_daily$SiteCode))
 
 ##### 1. import and match IMPROVE & CSN - DONE#####
 imp_csn_daily = read.csv("IMPROVE_CSN_joint_PM_species.csv")

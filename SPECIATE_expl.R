@@ -8,7 +8,7 @@ data.dir <- "/Users/ztttttt/Dropbox/HEI_PMF_files_Ting/SPECIATE_2018"
 
 ##packages in need
 require(tidyr) # separate{tidyr}, gather{tidyr}, spread{tidyr},  spread is VIP function, str_split_fixed{stringr} is better than separate
-require(stats) # aggregate{stats}, VIP function
+require(stats) # aggregate{stats}
 require(scales) # percent{}
 require(stringr) # str_split_fixed, separate one column into multiple
 require(dplyr)
@@ -17,10 +17,10 @@ require(lubridate)
 library(data.table)
 library(ggrepel)
 
-library(ggplot2)
 library(ggpubr)
 library(gridExtra) #grid.arrange{}
 library(grid) #textGrob{}
+library(ggplot2)
 library(ggsci)
 
 #### FINISHED -- data match and extract -- FINISHED ####
@@ -78,7 +78,6 @@ pm_csn_speciate = pm_csn_speciate[with(pm_csn_speciate,
 pm_csn_speciate$CompName <- factor(pm_csn_speciate$CompName, 
                                    levels = unique(pm_csn_speciate$CompName))
 
-
 profile.included = unique(pm_csn_speciate$PROFILE_NAME)
 length(profile.included)
 
@@ -96,6 +95,7 @@ format_variable <- function(variable) {
   variable <- gsub("NaIon", "Na\u207A", variable)
   variable <- gsub("KIon", "K\u207A", variable)
   variable <- gsub("PM25", "PM\u2082.\u2085", variable)
+  variable <- gsub("m3", "µm\u00B3", variable)
   return(variable)
 }
 
@@ -1631,6 +1631,105 @@ speciate_source_comp_sum =
                    Weight_sd = sd(WEIGHT_PERCENT, na.rm = T))
 
 write.csv(speciate_source_comp_sum, "SPECIATE_Source_Profile_quantile.csv")
+unique(speciate_source_comp_sum$Source)
+
+speciate_source_comp_sum_1 = na.omit(speciate_source_comp_sum)
+
+spc_NitrateSulfate = subset(speciate_source_comp_sum_1, Source == "NitrateSulfate")
+spc_SeaSalt = subset(speciate_source_comp_sum_1, Source == "SeaSalt")
+spc_Biomass = subset(speciate_source_comp_sum_1, Source == "Biomass")
+spc_Vehicle = subset(speciate_source_comp_sum_1, Source == "Vehicle")
+spc_TireBrake = subset(speciate_source_comp_sum_1, Source == "TireBrake")
+spc_Fuel = subset(speciate_source_comp_sum_1, Source == "Fuel")
+spc_Industry = subset(speciate_source_comp_sum_1, Source == "Industry")
+spc_Agriculture = subset(speciate_source_comp_sum_1, Source == "Agriculture")
+spc_Waste = subset(speciate_source_comp_sum_1, Source == "Waste")
+spc_Cook = subset(speciate_source_comp_sum_1, Source == "Cook")
+spc_Soil = subset(speciate_source_comp_sum_1, Source == "Soil")
+spc_DustCons = subset(speciate_source_comp_sum_1, Source == "DustCons")
+spc_OtherBurn = subset(speciate_source_comp_sum_1, Source == "OtherBurn")
+
+speciate_source_comp_med = select(speciate_source_comp_sum_1, 
+                                  Source, CompName, Weight_50)
+speciate_source_comp_med$class = "Element"
+speciate_source_comp_med$class[
+  grepl("Ion", speciate_source_comp_med$CompName, fixed = T)] = "Ion"
+speciate_source_comp_med$class[
+  grepl("OC", speciate_source_comp_med$CompName, fixed = T) |
+    grepl("EC", speciate_source_comp_med$CompName, fixed = T)] = "OC.EC"
+
+###### Top_5species, Top_5_element_species ######
+
+# Top 5 species for each source
+Top_5species_source = 
+  speciate_source_comp_med %>%
+  group_by(Source) %>%
+  arrange(desc(Weight_50)) %>%
+  slice_head(n = 5)
+
+Top_5species_source = 
+  select(Top_5species_source, 
+         Source, CompName)
+
+Top_5species_source$Species.No = 
+  c(rep(paste0("species", 1:5), 2),
+    paste0("species", 1:4),
+    rep(paste0("species", 1:5), 12))
+
+Top_5species_source =
+  spread(Top_5species_source, 
+         Source, 
+         CompName)
+
+# Top 5 element species for each source
+Top_5Element_source = 
+  subset(speciate_source_comp_med, 
+         !(class %in% c("Ion", "OC.EC"))) %>%
+  group_by(Source) %>%
+  arrange(desc(Weight_50)) %>%
+  slice_head(n = 5)
+
+Top_5Element_source = 
+  select(Top_5Element_source, 
+         Source, CompName)
+
+Top_5Element_source$Species.No = 
+  c(rep(paste0("species", 1:5), 2),
+    "species1",
+    rep(paste0("species", 1:5), 12))
+
+Top_5Element_source =
+  spread(Top_5Element_source, 
+         Source, 
+         CompName)
+
+# Top 5 species when there is no C-subgroups for each source
+Top_5noCsub_source = 
+  subset(speciate_source_comp_med, 
+         !(CompName %in% 
+             c("OC1", "OC2", "OC3", "OC4", 
+               "EC1", "EC2", "EC3"))) %>%
+  group_by(Source) %>%
+  arrange(desc(Weight_50)) %>%
+  slice_head(n = 5)
+
+Top_5noCsub_source = 
+  select(Top_5noCsub_source, 
+         Source, CompName)
+
+Top_5noCsub_source$Species.No = 
+  c(rep(paste0("species", 1:5), 2),
+    paste0("species", 1:4),
+    rep(paste0("species", 1:5), 12))
+
+Top_5noCsub_source =
+  spread(Top_5noCsub_source, 
+         Source, 
+         CompName)
+
+write.csv(Top_5species_source, "SPECIATE_Top_5_All_species_source.csv")
+write.csv(Top_5Element_source, "SPECIATE_Top_5_Element_species_source.csv")
+write.csv(Top_5noCsub_source, "SPECIATE_Top_5_noCsub_species_source.csv")
 
 #### Data summary - Plotting #### 
 # below steps can ensure the order of labels in x-axis follow the preset order 
@@ -1640,7 +1739,7 @@ speciate_source$CompName <- factor(speciate_source$CompName,
                                    levels = unique(speciate_source$CompName))
 # plotting
 source.Combustion = c("Biomass", "Vehicle", 
-                      "Fuel", "OtherBurn", "Waste")
+                      "Fuel", "Waste") #"OtherBurn", 
 Combust_whole <- ggplot(subset(speciate_source, 
                                Source %in% source.Combustion), 
                         aes(CompName, WEIGHT_PERCENT, color = Class)) +
@@ -1663,11 +1762,60 @@ Combust_whole <- ggplot(subset(speciate_source,
 # plot.margin, top, right, bottom, left
 Combust_whole
 
+comb_whole_vlines_C <- 
+  data.frame(Source = c(rep("Biomass", 7), 
+                        rep("Fuel", 7), 
+                        rep("Vehicle", 8), 
+                        rep("Waste",2)),
+             xintercept = c("EC", "EC1", "EC2", "OC1", "OC2", "OC3", "OC4", 
+                            "EC", "EC1", "EC2", "OC", "OC2", "OC3", "OC4",
+                            "EC", "EC1", "EC2", "OC", "OC1", "OC2", "OC3", "OC4", 
+                            "EC", "OC"))
+
+comb_whole_vlines_Ion <- 
+  data.frame(Source = c(rep("Biomass", 2), 
+                        rep("Fuel", 2), 
+                        rep("Vehicle", 2), 
+                        rep("Waste",1)),
+             xintercept = c("SO4Ion", "KIon", 
+                            "SO4Ion", "NH4Ion", 
+                            "SO4Ion", "NH4Ion",  
+                            "ClIon"))
+
+comb_whole_vlines_element <- 
+  data.frame(Source = c(rep("Biomass", 1), 
+                        rep("Fuel", 9), 
+                        rep("Vehicle", 8), 
+                        rep("Waste", 11)),
+             xintercept = c("K", 
+                            "Al", "Ba", "Ca", "Fe", "K", "Na", "S", "Si", "Zn",
+                            "Al", "Ba", "Ca", "Fe", "Na", "S", "Si", "Zn",
+                            "Al", "Ca", "Fe", "Hg", "K", "Na", "Pb", "S", "Si", "Sn", "Zn"))
+
+comb_whole_vlines_element <- 
+  data.frame(Source = c(rep("Biomass", 1), 
+                      rep("Fuel", 4), 
+                      rep("Vehicle", 3), 
+                      rep("Waste", 6)),
+             xintercept = c("K", 
+                            "Ba", "Ca", "K", "Zn",
+                            "Ba", "Ca", "Zn",
+                            "Ca", "Hg", "K", "Pb", "Sn", "Zn"))
+  
 Combust_zoom <- ggplot(subset(speciate_source, 
                               Source %in% source.Combustion), 
                        aes(CompName, WEIGHT_PERCENT, color = Class)) +
+  geom_vline(data = comb_whole_vlines_C, 
+             aes(xintercept = xintercept), 
+             color = "oldlace", size = 7) +
+  geom_vline(data = comb_whole_vlines_Ion, 
+             aes(xintercept = xintercept), 
+             color = "aliceblue", size = 7) +
+  geom_vline(data = comb_whole_vlines_element, 
+             aes(xintercept = xintercept), 
+             color = "gray92", size = 7) +
   geom_boxplot(fill = NA, outlier.colour = NA) +
-  geom_jitter(size=0.8, alpha=0.3) +
+  geom_jitter(size=0.5, alpha=0.3, color = "black") +
   facet_grid(Source ~., scales = "free")+
   scale_color_nejm() + 
   ggtitle("SPECIATE_Main-Combustion_zoom") +
@@ -1683,6 +1831,7 @@ Combust_zoom <- ggplot(subset(speciate_source,
         panel.spacing.y = unit(0, "cm"),
         strip.text.y = element_text(size = 12))
 Combust_zoom
+  
 
 source.otherMain = c("Industry", "Agriculture", "Soil", "Cook", 
                      "DustCons", "TireBrake")

@@ -27,7 +27,9 @@ library(ggsci)
 ####### IMPROVE - Fill the Missing #######
 ####################################################################################
 #### generate basic data for filling ####
-imp_daily = read.csv("/Users/ztttttt/Dropbox/HEI_PMF_files_Ting/IMPROVE_Component_with_missing.csv")
+imp_daily = read.csv("/Users/ztttttt/Dropbox/HEI_PMF_files/IMPROVE_Component_with_missing.csv")
+imp_daily = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/IMPROVE_Component_with_missing.csv")
+
 # imp_meta_para = read.csv("IMPROVE metadata 109 parameters 2010-20.csv")
 imp_daily$X = imp_daily$X.1 = NULL
 imp_daily$Date = as.Date(imp_daily$Date)
