@@ -20,6 +20,7 @@ library(plyr)
 # pathway = paste0(data.dir,"/CSN_CMD_txt/")
 # pathway = paste0(data.dir,"/CSN_CMD_txt_noCsub/")
 # pathway = paste0(data.dir,"/CSN_CMD_txt_noCsub_noExtreme/")
+# pathway = paste0(data.dir,"/IMPROVE_CMD_txt_noCsub_noExtreme/")
 
 ## name of folders and sub-folders
 clusterNum = paste0("Cluster_", 1:25)
@@ -41,20 +42,25 @@ factor.number = c(6:11)
 
 #### B2. edit and output new iniparams.txt ####
 
-### All data, All Variables!
+### All data, All Variables!, CSN
 cluster_sum = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files/National_SA_PMF/PMF_NoGUI_cluster/CSN_PMF_CMD_StrongWeakBad_Cluster.csv")
 pathway = paste0(data.dir,"/CSN_CMD_txt/")
 name.prefix = "CSN_C_" # prefix in names for input/output files
 
-### All data, NO OC/EC Subgroups!
+### All data, NO OC/EC Subgroups!, CSN
 cluster_sum = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files/National_SA_PMF/PMF_NoGUI_NoCsub_cluster/CSN_noCsub_PMF_CMD_StrongWeakBad_Cluster.csv")
 pathway = paste0(data.dir,"/CSN_CMD_txt_noCsub/")
 name.prefix = "CSN_noCsub_C_" # prefix in names for input/output files
 
-### No extreme values, NO OC/EC Subgroups
+### No extreme values, NO OC/EC Subgroups, CSN
 cluster_sum = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files/National_SA_PMF/PMF_NoGUI_NoCsub_NoExtreme_cluster/CSN_noCsub_noExtreme_PMF_CMD_StrongWeakBad_Cluster.csv")
 pathway = paste0(data.dir,"/CSN_CMD_txt_noCsub_noExtreme/")
 name.prefix = "CSN_noCsub_noExtreme_C_" # prefix in names for input/output files
+
+### No extreme values, NO OC/EC Subgroups, IMPROVE
+cluster_sum = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_data_prepare/IMPROVE_noCsub_noExtreme_PMF_CMD_StrongWeakBad_Cluster.csv")
+pathway = paste0(data.dir,"/IMPROVE_CMD_txt_noCsub_noExtreme/")
+name.prefix = "IMPROVE_noCsub_noExtreme_C_" # prefix in names for input/output files
 
 cluster_sum$X = NULL
 
@@ -67,6 +73,11 @@ for(i in 1:length(cluster.NO)){
   variable.NO = cluster_info$sum.weak.good
   ## weak0 or strong1 for PM2.5 species 
   wead.strong.assign = cluster_info$style.weak.good
+  
+  species_col = col_comp(cluster_info, "As", "PM25")
+  rowSums(cluster_info[, species_col], na.rm = T)
+  rowSums(cluster_info[, species_col] == 0, na.rm = T)
+  rowSums(cluster_info[, species_col] == 1, na.rm = T)
   
   # change to the style used for txt
   # remove the first "/", and change the rest to "\t"
@@ -182,36 +193,47 @@ for(i in 1:length(cluster.NO)){
 
 ###### Copy and paste the updated .csv file in cluster folders ######
 # Specify the source directory path
-noGUI_file <- "/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_PMF/PMF_NoGUI_NoCsub_NoExtreme_cluster" 
+# noGUI_file <- "/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_PMF/PMF_NoGUI_NoCsub_NoExtreme_cluster" 
+noGUI_file <- "/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_data_prepare/IMPROVE_noGUI_NoCsub_NoExtreme_cluster" 
 
 # Specify the base path for destination directories
-noGUI_txt_folder <- "/Users/TingZhang/Documents/HEI HAQ PMF/CSN_IMPROVE_comp/CSN_CMD_txt_noCsub_noExtreme"  
+# noGUI_txt_folder <- "/Users/TingZhang/Documents/HEI HAQ PMF/CSN_IMPROVE_comp/CSN_CMD_txt_noCsub_noExtreme"  
+noGUI_txt_folder <- "/Users/TingZhang/Documents/HEI HAQ PMF/CSN_IMPROVE_comp/IMPROVE_CMD_txt_noCsub_noExtreme"  
+site_date_PM_folder <- "/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_PMF/IMPROVE_NoGUI_NoCsub_NoExtreme_cluster"  
 
 # Get a list of .csv file names of the conc & unc data for Non-GUI PMF
 # Read those starting with CSN_ and end with _CMD.csv
-cluster_file_list <- list.files(path = noGUI_file, pattern = "^CSN_.*_PMF_CMD\\.csv$")
+csv_files <- list.files(path = noGUI_file, 
+                        pattern = "\\PMF_CMD.csv$", 
+                        full.names = T
+                        ) # recursive = T
 
-# Loop through each .csv file name
-for (file_name in cluster_file_list) {
-  # Extract the cluster.No from the file name
-  cluster.No = str_extract(file_name, "\\d+")
+for(file in csv_files) {
+
+  # file = csv_files[1]
+  file_df <- read.csv(file, stringsAsFactors = F)
+  colnames(file_df)[1] = "SerialNumber"
   
-  # Name of Cluster folder
+  site_date_PM = select(file_df,
+                        SerialNumber, SiteCode, Date, State, conc_PM25)
+  colnames(site_date_PM)[5] = "PM25"
+  
+  file_df$SiteCode = file_df$Date = file_df$State = NULL
+  
+  # construct the destination directory path
+  cluster.No = stringr::str_extract(basename(file), "\\d+")
   cluster_folder = paste0("Cluster_", cluster.No, "/")
-  
-  # Construct the destination directory path
   cluster_dir <- file.path(noGUI_txt_folder, cluster_folder)
-  
-  # Create the destination directory if it doesn't exist
-  # if (!dir.exists(cluster_dir)) {dir.create(cluster_dir)}
-  
-  # Full path to the source csv file
-  src_cluster_path <- file.path(noGUI_file, file_name)
-  
-  # Copy the .csv file from the source directory to the destination directory
-  file.copy(from = src_cluster_path, to = cluster_dir, recursive = T)
-}
 
+  # write the csv file to the cluster directory without row names
+  dest_file <- file.path(cluster_dir, basename(file))
+  # write.csv(file_df, dest_file, row.names = F)
+  
+  dest_site_date <- file.path(site_date_PM_folder, 
+                              paste0("IMPROVE_noCsub_noExtreme_C_", cluster.No, "_SiteDate.csv"))
+  write.csv(site_date_PM, dest_site_date, row.names = F)
+  
+}
 
 
 
