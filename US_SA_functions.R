@@ -150,9 +150,10 @@ source_ref = function(base_percent, N){
       grepl("Al", Main_Species) & grepl("Si", Main_Species) & grepl("Ca", Main_Species) ~ "F9-Soil/Dust",
       grepl("NaIon", Main_Species) & grepl("Cl", Main_Species) ~ "F6-Fresh Sea Salt",
       grepl("Mg", Main_Species) & grepl("SO4Ion", Main_Species) ~ "F4-Aged Sea Salt",
-      grepl("NH4Ion", Main_Species) & grepl("NO3Ion", Main_Species) ~ "F2-Secondary Nitrate",
-      grepl("NH4Ion", Main_Species) & grepl("SO4Ion", Main_Species) ~ "F3-Secondary Sulfate",
+      grepl("NH4Ion", Main_Species) & (grepl("NO3Ion", Main_Species) | startsWith(Main_Species, "NO3Ion")) ~ "F2-Secondary Nitrate",
+      grepl("NH4Ion", Main_Species) & (grepl("SO4Ion", Main_Species) | startsWith(Main_Species, "SO4Ion")) ~ "F3-Secondary Sulfate",
       grepl("KIon", Main_Species) & grepl("OC", Main_Species) ~ "F8-Biomass",
+
       TRUE ~ "F-" # Default value if no condition is met
     ))
   
