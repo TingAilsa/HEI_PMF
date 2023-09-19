@@ -29,24 +29,30 @@ library(USAboundaries)
 #############################################################
 #### interpolation for IMPROVE data only ####
 #############################################################
-cty_rural_urban = read.csv("/Users/ztttttt/Dropbox/HEI_US_PMF/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
-cty_rural_urban = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
-cty_rural_urban$X = cty_rural_urban$X.1 = NULL
+# changed! # cty_rural_urban = fread("/Users/ztttttt/Dropbox/HEI_US_PMF/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
+cty_rural_urban = fread("/Users/TingZhang/Documents/HEI HAQ PMF/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
+cty_rural_urban$V1 = NULL
 
 # imp_daily = read.csv("/Users/TingZhang/Dropbox/HEI_PMF_files_Ting/IMPROVE_Component_with_missing.csv")
-imp_daily = read.csv("/Users/ztttttt/Documents/HEI PMF/R - original IMPROVE/IMPROVE_interpulation_random-forest_afterLog.csv")
-imp_daily = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/IMPROVE_interpulation_random-forest_afterLog.csv")
-imp_daily$X = imp_daily$X.1 = NULL
+imp_daily = fread("/Users/ztttttt/Documents/HEI PMF/R - original IMPROVE/IMPROVE_interpulation_random-forest_afterLog.csv")
+imp_daily = fread("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/IMPROVE_interpulation_random-forest_afterLog.csv")
+imp_daily = fread("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_data_prepare/IMPROVE_interpulation_random-forest_2023.csv")
+imp_daily$V1 = NULL
 imp_daily$Date = as.Date(imp_daily$Date)
 sapply(imp_daily, class)
 head(imp_daily)
 
 imp_cty_rural_urban = subset(cty_rural_urban, Dataset == "IMPAER")
-imp_cty_rural_urban = select(imp_cty_rural_urban, SiteCode, RuralUrban, geoid, Longitude, Latitude)
+# imp_cty_rural_urban = select(imp_cty_rural_urban, SiteCode, RuralUrban, geoid, Longitude, Latitude)
+imp_cty_rural_urban = imp_cty_rural_urban[ , 
+                                           .(SiteCode, RuralUrban, 
+                                             geoid, Longitude, Latitude)]
+
 imp_cty_rural_urban$geoid = ifelse(imp_cty_rural_urban$geoid < 10000, 
                                    paste0("0", imp_cty_rural_urban$geoid), 
                                    imp_cty_rural_urban$geoid)
-cty_rural_urban_count = data.frame(table(cty_rural_urban$RuralUrban))
+# cty_rural_urban_count = data.frame(table(cty_rural_urban$RuralUrban))
+cty_rural_urban_count = as.data.table(table(cty_rural_urban$RuralUrban))
 colnames(cty_rural_urban_count)[1] = "Rural Urban Classification"
 
 ## setting 30 colors for plotting clusters
@@ -73,12 +79,12 @@ npg.color = c("1" = "firebrick3", "2" = "lightskyblue", "3" = "lightseagreen",
 
 ### exclude PM species not to be used for PMF or have too many negative values in original data
 imp_tracer = imp_daily
-imp_tracer$OC1 = imp_tracer$OC2 = imp_tracer$OC3 = imp_tracer$OC4 = # fail to meet QA/QC in CSN
-  imp_tracer$EC1 = imp_tracer$EC2 = imp_tracer$EC3 = # fail to meet QA/QC in CSN
-  imp_tracer$ammNO3 = imp_tracer$ammSO4 = # recalculated species
-  imp_tracer$NO2. = # only existed in IMPROVE dataset
-  imp_tracer$Rb = imp_tracer$Se = imp_tracer$Zr = 
-  imp_tracer$RC.PM2.5 = imp_tracer$PM2.5 = NULL # not PM species
+# imp_tracer$OC1 = imp_tracer$OC2 = imp_tracer$OC3 = imp_tracer$OC4 = # fail to meet QA/QC in CSN
+  # imp_tracer$EC1 = imp_tracer$EC2 = imp_tracer$EC3 = # fail to meet QA/QC in CSN
+  # imp_tracer$ammNO3 = imp_tracer$ammSO4 = # recalculated species
+  # imp_tracer$NO2. = imp_tracer$Cl. = # only existed in IMPROVE dataset
+  imp_tracer$Rb = imp_tracer$Zr = # imp_tracer$Se = 
+  imp_tracer$PM25 = NULL # not PM species
 sapply(imp_tracer, class)
 
 # log the species concentrations before clustering
@@ -86,22 +92,42 @@ imp_tracer = cbind(imp_tracer[, 1:4],
                    log(imp_tracer[, 5:(ncol(imp_tracer))]))
 head(imp_tracer)
 
-imp_tracer_mean = imp_tracer  %>% 
+imp_tracer$year = year(imp_tracer$Date)
+imp_tracer$month = month(imp_tracer$Date)
+
+##### mean of SITE level of Whole study period
+imp_tracer_mean = imp_tracer %>% 
   group_by(SiteCode) %>%
   summarise_all(# across(Al:Zn), # when using across, sometimes error can hardly be resolved
                 mean, na.rm = T)
+imp_tracer_mean$Date = imp_tracer_mean$Qualifier = imp_tracer_mean$State = 
+  imp_tracer_mean$year = imp_tracer_mean$month = NULL
+
+##### mean of SITE level of montly average
+imp_tracer_mean = imp_tracer %>% 
+  group_by(SiteCode, year, month) %>%
+  summarise_all(# across(Al:Zn), # when using across, sometimes error can hardly be resolved
+    mean, na.rm = T)
+imp_tracer_mean$year = log(imp_tracer_mean$year)
+imp_tracer_mean$month = log(imp_tracer_mean$month)
 imp_tracer_mean$Date = imp_tracer_mean$Qualifier = imp_tracer_mean$State = NULL
 
-# double check if there are NAs in imp_tracer_mean
+
+# check if there are NAs in df
 which(is.na(imp_tracer_mean), arr.ind=TRUE) # 
 
 # add geoid (here equals to fips information here) for each site
-imp_tracer_mean = merge(imp_tracer_mean, imp_cty_rural_urban, all.x = T)
-head(imp_tracer_mean)
+imp_tracer_gps = merge(imp_tracer_mean, 
+                        imp_cty_rural_urban, 
+                        all.x = T)
+# remove the site without state, geoid info, 
+imp_tracer_gps = subset(imp_tracer_gps,
+                        !is.na(geoid))
+colnames(imp_tracer_gps)
 
 # log the absolute values of longitudes and latitudes in case of considering gegraphic locations
-imp_tracer_mean$log.Long = log(abs(imp_tracer_mean$Longitude))
-imp_tracer_mean$log.Lat = log(abs(imp_tracer_mean$Latitude))
+imp_tracer_gps$log.Long = log(abs(imp_tracer_gps$Longitude))
+imp_tracer_gps$log.Lat = log(abs(imp_tracer_gps$Latitude))
 
 # generate the US county boundary data
 us_cty_bdr = USAboundaries::us_counties()
@@ -109,58 +135,129 @@ us_cty_bdr[, 13] = NULL # there are two "state_name"
 head(us_cty_bdr)
 us_cty_bdr_geo = dplyr::select(us_cty_bdr, geoid, stusps, geometry)
 
-# add geometry information 
-imp_tracer_mean_bdr = merge(us_cty_bdr_geo, imp_tracer_mean)
-colnames(imp_tracer_mean_bdr)
-colnames(imp_tracer_mean_bdr)[1] = "fips"
+# check whether all geoid in IMPROVE are in US county boundary data
+sum(imp_tracer_gps$geoid %in% us_cty_bdr_geo$geoid)
+sum(us_cty_bdr_geo$geoid %in% imp_tracer_gps$geoid)
 
-imp_dat_tra = imp_tracer_mean_bdr
-imp_dat_tra$geometry.1 = imp_dat_tra$geometry = NULL
+##### CAN JUMP THIS PART: find and match geoid for sites missing such info #####
+unique(imp_tracer_gps$geoid[!(imp_tracer_gps$geoid %in% 
+                                us_cty_bdr_geo$geoid)])
+unique(imp_tracer_gps$geoid[imp_tracer_gps$geoid %in% 
+                              us_cty_bdr_geo$geoid])
+
+# extract site info for those missing fips/geoid
+cty_rural_urban_NA_geoid = subset(cty_rural_urban,
+                                  SiteCode %in% 
+                                    unique(imp_tracer_gps_NA_geoid$SiteCode))
+
+imp_tracer_gps_NA_geoid = subset(imp_tracer_gps, 
+                                  is.na(geoid) & 
+                                    (!is.na(Longitude)))
+imp_tracer_NA_geoid_site = dplyr::select(
+  imp_tracer_gps_NA_geoid, 
+  SiteCode, Longitude, Latitude)
+
+# detect the sites in US county boundary data for that missing fips/geoid
+imp_tracer_NA_geoid_site_sf <- st_as_sf(imp_tracer_NA_geoid_site, 
+                                        coords = c("Longitude", "Latitude"), 
+                                        crs = 4326) #crs = 4326 refers to WGS84.
+nearest_index <- st_nearest_feature(imp_tracer_NA_geoid_site_sf, us_cty_bdr)
+
+# extract the geoid from us_cty_bdr 
+imp_tracer_NA_geoid_site$nearest_geoid <- us_cty_bdr$geoid[nearest_index]
+us_cty_bdr$namelsad[nearest_index] 
+# Keweenaw County, geoid 26083, is MI's least populous county, ~2100 population 
+
+# complete the geoid info
+imp_tracer_gps <- 
+  left_join(imp_tracer_gps, 
+            dplyr::select(imp_tracer_NA_geoid_site,
+                          SiteCode, nearest_geoid), 
+            by = "SiteCode") %>%
+  mutate(geoid = coalesce(geoid, 
+                          nearest_geoid)) %>%
+  dplyr::select(-nearest_geoid) # remove the column
+
+imp_tracer_gps$RuralUrban[imp_tracer_gps$SiteCode == "ISLE1"] = "Rural"
+imp_tracer_gps = subset(imp_tracer_gps, 
+                         !(is.na(geoid)))
+#### CAN JUMP THIS PART, end #####
+
+######## IMPROVE - Cluster based on Site-average #########
+
+# add geometry information 
+imp_tracer_gps_bdr = merge(us_cty_bdr_geo, 
+                           imp_tracer_gps)
+
+colnames(imp_tracer_gps_bdr)
+colnames(imp_tracer_gps_bdr)[1] = "fips"
+
+imp_dat_tra = imp_tracer_gps_bdr
+imp_dat_tra$geometry.1 = imp_dat_tra$geometry = imp_dat_tra$SideCode = NULL
 imp_dat_tra$Longitude = imp_dat_tra$Latitude = NULL
 # change rowname (SiteCode) to first column
-rownames(imp_dat_tra) <- imp_dat_tra$SiteCode
+# rownames(imp_dat_tra) <- imp_dat_tra$SiteCode
+colnames(imp_dat_tra)
 
-# add information of the fips and whether if a county is rural or urban
-imp_dat_tra$RuralUrban = imp_tracer_mean_bdr$RuralUrban
-imp_dat_tra$fips = imp_tracer_mean_bdr$fips
-head(imp_dat_tra)
+# double check if fips and rural/urban classification match
+summary(imp_dat_tra$RuralUrban == imp_tracer_gps_bdr$RuralUrban)
+summary(imp_dat_tra$SiteCode == imp_tracer_gps_bdr$SiteCode)
+summary(imp_dat_tra$fips == imp_tracer_gps_bdr$fips)
 
-# consider no gps info in the random forest model
+######  NO GPS info in the random forest model
 imp_log_rf_fit <- randomForest(x = imp_dat_tra[, 4:(ncol(imp_dat_tra) - 2)], 
                                y = NULL, 
                                ntree = 10000, 
                                proximity = TRUE, 
                                oob.prox = TRUE)
-#consider gps info in the random forest model
+imp_log_rf_hclust <- hclust(as.dist(1-imp_log_rf_fit$proximity), method = "ward.D2")
+
+######  With GPS info in the random forest model
 imp_log_rf_gps_fit <- randomForest(x = imp_dat_tra[, 4:ncol(imp_dat_tra)], 
                                y = NULL, 
                                ntree = 10000, 
                                proximity = TRUE, 
                                oob.prox = TRUE)
+imp_log_rf_hclust <- hclust(as.dist(1-imp_log_rf_gps_fit$proximity), method = "ward.D2")
 
-imp_log_rf_hclust <- hclust(as.dist(1-imp_log_rf_fit$proximity), method = "ward.D2")
-# imp_log_rf_hclust <- hclust(as.dist(1-imp_log_rf_gps_fit$proximity), method = "ward.D2")
+# generate 25 clusters
+imp_log_rf_hclust_tree = cutree(imp_log_rf_hclust, k=25)
 
-imp_log_rf_hclust_tree = cutree(imp_log_rf_hclust, k=20)
+imp_rf_cluster = imp_dat_tra
+imp_rf_cluster$SiteCode = imp_tracer_gps_bdr$SiteCode
 
-imp_dat_rf = imp_dat_tra
-imp_dat_rf$rf.clusters <- imp_log_rf_hclust_tree
+# assign cluster results
+imp_rf_cluster$rf.clusters <- imp_log_rf_hclust_tree
 # table(imp_log_rf_hclust_tree, iris$Species)
-imp_dat_rf$rf.clusters.fc = as.factor(imp_dat_rf$rf.clusters)
-data.frame(table(imp_dat_rf$rf.clusters))
+imp_rf_cluster$rf.clusters.fc = as.factor(imp_rf_cluster$rf.clusters)
+data.frame(table(imp_rf_cluster$rf.clusters))
 
-imp_dat_rf$Longitude = -exp(imp_dat_rf$log.Long)
-imp_dat_rf$Latitude = exp(imp_dat_rf$log.Lat)
+imp_rf_cluster$Longitude = -exp(imp_rf_cluster$log.Long)
+imp_rf_cluster$Latitude = exp(imp_rf_cluster$log.Lat)
 
+### specially for results based on monthly data, assign only one cluster to each site
+# if the site appears most frequently in given cluster, then define the result
+imp_rf_cluster_month <- 
+  imp_rf_cluster %>%
+  mutate(rf.clusters = as.factor(rf.clusters)) %>%
+  select(SiteCode, rf.clusters) %>%
+  group_by(SiteCode, rf.clusters) %>%
+  summarise(n = n(), .groups = 'drop') 
 
-plot_usmap(data = imp_dat_rf, values = "rf.clusters.fc", labels = F, 
+imp_rf_cluster_month_final <- 
+  imp_rf_cluster_month %>%
+  group_by(SiteCode) %>%
+  slice_max(n, n = 1, with_ties = FALSE) %>%
+  ungroup()
+
+plot_usmap(data = imp_rf_cluster, values = "rf.clusters.fc", labels = F, 
            label_color = "white", regions = "counties") + 
   theme(panel.background=element_blank()) +
   scale_fill_manual(values = npg.color[1:20])
 
 # MainStates <- map_data("state")
 UScounty <- map_data("county")
-ggplot(imp_dat_rf, 
+ggplot(imp_rf_cluster, 
        aes(Longitude, Latitude, color= rf.clusters.fc)) + 
   geom_polygon(data=UScounty, aes(x=long, y=lat, group=group),
                color="lightgrey", fill="white", alpha = 0.4) +
@@ -170,7 +267,7 @@ ggplot(imp_dat_rf,
   theme_linedraw()
 
 #############################################################
-#### Interpolation for IMPROVE & CSN ####
+#### Interpolation for IMPROVE & CSN together - till 2023.11 ####
 #############################################################
 ##### DONE, 0-1. import and match IMPROVE & CSN - DONE#####
 # imp_daily = read.csv("/Users/TingZhang/Dropbox/HEI_PMF_files_Ting/IMPROVE_Component_with_missing.csv")
@@ -190,8 +287,7 @@ csn_daily_after$Date = as.Date(csn_daily_after$Date)
 
 
 # remove items not to be used
-imp_remove = c("ammNO3", "ammSO4", "EC1", "EC2", "EC3",  
-               "OC1", "OC2", "OC3", "OC4", 
+imp_remove = c("ammNO3", "ammSO4", 
                "RC.PM2.5", "PM2.5", "NO2.", 
                "Rb", "Zr", "Cl.") # high NAs or not exits in a large part of CSN 
 
@@ -1018,7 +1114,8 @@ csn_test_tra_month = merge(csn_test_month,
                             all.x = T)
 head(csn_test_tra_month)
 
-csn_test_tra_month = csn_test_tra_month %>% relocate(geoid, .before = SiteCode)
+csn_test_tra_month = csn_test_tra_month %>% 
+  relocate(geoid, .before = SiteCode)
 colnames(csn_test_tra_month)[1] = "fips"
 csn_test_tra_month = na.omit(csn_test_tra_month)
 csn_test_tra_month$Date = NULL
