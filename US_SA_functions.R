@@ -107,25 +107,39 @@ p_neg <- function(dataset){
 }
 
 #### detect weak & strong species based on prepared file for PMF CMD runs #### 
-strong_weak = function(dataset, start.species, end.species) {
+strong_weak = function(cluster_info, start.species, end.species) {
   col_comp_all = col_comp(cluster_info, start.species, end.species)
+  col_selected = colnames(cluster_info)[col_comp_all]
   
-  colnames(cluster_info)[which(
+  strong_weak = 
+    col_selected[which(
     !is.na(cluster_info[1, col_comp_all]))]
+  
+  return(strong_weak)
 }
 
-strong_species = function(dataset, start.species, end.species) {
+strong_species = function(cluster_info, start.species, end.species) {
   col_comp_all = col_comp(cluster_info, start.species, end.species)
   
-  colnames(cluster_info)[which(
-    cluster_info[1, col_comp_all] == 1)]
+  col_selected = colnames(cluster_info)[col_comp_all]
+  
+  strong_species = 
+    col_selected[which(
+      cluster_info[1, col_comp_all] == 1)]
+  
+  return(strong_species)
 }
 
-weak_species = function(dataset, start.species, end.species) {
+weak_species = function(cluster_info, start.species, end.species) {
   col_comp_all = col_comp(cluster_info, start.species, end.species)
   
-  colnames(cluster_info)[which(
-    cluster_info[1, col_comp_all] == 0)]
+  col_selected = colnames(cluster_info)[col_comp_all]
+  
+  weak_species = 
+    col_selected[which(
+      cluster_info[1, col_comp_all] == 0)]
+  
+  return(weak_species)
 }
 
 
@@ -148,11 +162,20 @@ source_ref = function(base_percent, N){
   main_sources <- main_species %>%
     mutate(Source_reference = case_when(
       grepl("Al", Main_Species) & grepl("Si", Main_Species) & grepl("Ca", Main_Species) ~ "F9-Soil/Dust",
-      grepl("NaIon", Main_Species) & grepl("Cl", Main_Species) ~ "F6-Fresh Sea Salt",
+      
+      (grepl("NaIon", Main_Species) & grepl("Cl", Main_Species)) | 
+        grepl("Na", Main_Species) & grepl("Cl", Main_Species) ~ "F6-Fresh Sea Salt",
+      
       grepl("Mg", Main_Species) & grepl("SO4Ion", Main_Species) ~ "F4-Aged Sea Salt",
-      grepl("NH4Ion", Main_Species) & (grepl("NO3Ion", Main_Species) | startsWith(Main_Species, "NO3Ion")) ~ "F2-Secondary Nitrate",
-      grepl("NH4Ion", Main_Species) & (grepl("SO4Ion", Main_Species) | startsWith(Main_Species, "SO4Ion")) ~ "F3-Secondary Sulfate",
-      grepl("KIon", Main_Species) & grepl("OC", Main_Species) ~ "F8-Biomass",
+      
+      (grepl("NH4Ion", Main_Species) & (grepl("NO3Ion", Main_Species)) | 
+         startsWith(Main_Species, "NO3Ion")) ~ "F2-Secondary Nitrate",
+      
+      (grepl("NH4Ion", Main_Species) & (grepl("SO4Ion", Main_Species)) | 
+         startsWith(Main_Species, "SO4Ion")) ~ "F3-Secondary Sulfate",
+      
+      (grepl("KIon", Main_Species) & grepl("OC", Main_Species)) | 
+        grepl("K", Main_Species) & grepl("OC", Main_Species) ~ "F8-Biomass",
 
       TRUE ~ "F-" # Default value if no condition is met
     ))
@@ -404,6 +427,7 @@ conc_percent_contri = function(conc_contribution){
 
 
 #### Extract info in Displacement results DISP and prepare for plotting #### 
+library(dplyr)
 
 disp_analysis = function(disp_output){
   # Extract lines with values
@@ -496,6 +520,63 @@ Nmain_Species = function(percent_contribution, N){
                                      1:(ncol(mainN_Species) - 1))]
   
   return(mainN_Species)
+}
+
+
+Nmain_Species_with_Contribution <- function(percent_contribution, N) {
+  percent_contribution = subset(percent_contribution,
+                                !(Species %in% c("PM25", "PM2.5")))
+  
+  rownames(percent_contribution) = percent_contribution[, 1]
+  percent_contribution[, 1] = NULL
+  
+  N_main_Species = data.frame(
+    apply(
+      percent_contribution, 
+      2, 
+      function(x) 
+        rownames(percent_contribution)
+      [order(x, decreasing = T)[1:N]]
+    ))
+  
+  N_main_Contribution = data.frame(
+    apply(
+      percent_contribution, 
+      2, 
+      function(x) 
+        x
+      [order(x, decreasing = T)[1:N]]
+    ))
+  
+  colnames(N_main_Species)[1] = paste0("Main_Species")
+  colnames(N_main_Contribution)[1] = paste0("Contribution")
+  
+  combined_data = cbind(N_main_Species, N_main_Contribution)
+  
+  combined_data$Factor = rownames(combined_data)
+  rownames(combined_data) = NULL
+  
+  combined_data <- combined_data[, c(ncol(combined_data), 1:(ncol(combined_data) - 1))]
+  
+  return(combined_data)
+}
+
+Determine_Source <- function(main_species_data, percent_thresholds) {
+  # Assuming the structure is similar to what's outputted by `Nmain_Species_with_Contribution`
+  # and that `percent_thresholds` is a named vector with species names and corresponding thresholds
+  
+  source_determined = apply(main_species_data, 1, function(row) {
+    species_list = unlist(strsplit(as.character(row["Main_Species"]), " "))
+    contribution_list = as.numeric(unlist(strsplit(as.character(row["Contribution"]), " ")))
+    names(contribution_list) = species_list
+    
+    surpass_threshold = contribution_list > percent_thresholds[species_list]
+    
+    # Returns TRUE if all species surpass their thresholds, FALSE otherwise
+    return(all(surpass_threshold))
+  })
+  
+  return(source_determined)
 }
 
 #### Replace characters in txt file on given position #### 
