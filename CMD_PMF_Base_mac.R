@@ -2,8 +2,12 @@
 # rm(list=ls())
 
 ##set working directory
-setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/CSN_base_DISPres1")
-setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/IMPROVE_base_DISPres1")
+# CSN
+# setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/CSN_base_DISPres1")
+
+# IMPROVE
+# setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/IMPROVE_base_DISPres1")
+
 getwd()
 data.dir <- "/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/results_R_data"
 
@@ -18,6 +22,8 @@ library(data.table)
 library(ggplot2)
 library(ggsci)
 library(ggpattern)
+library(ggthemes)
+library(scales)
 
 # library(gridExtra)
 
@@ -25,13 +31,26 @@ library(ggpattern)
 # Directory containing the CSV files you want to read
 # csv_folder <- "/projects/HAQ_LAB/tzhang/pmf_no_gui/CSN_CMD_txt_noCsub_noExtreme/other_files/"
 
+# CSN
 cluster_info_all = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/National_SA_PMF/PMF_NoGUI_NoCsub_NoExtreme_cluster/CSN_noCsub_noExtreme_PMF_CMD_StrongWeakBad_Cluster.csv")
 species_class = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/National_SA_PMF/CSN_Species_class_sub.csv")
 cluster_info_all$X = species_class$X = NULL
 
+# CSN
+noCsub_noExtreme = "CSN_NoGUI_NoCsub_NoExtreme_cluster"
+data.prefix = "CSN_noCsub_noExtreme_C_"
+disp.prefix = "CSN_C_"
+
+
+# IMPROVE
 cluster_info_all = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_data_prepare/IMPROVE_noCsub_noExtreme_PMF_CMD_StrongWeakBad_Cluster.csv")
 species_class = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/National_SA_PMF/CSN_Species_class_sub.csv")
 cluster_info_all$X = species_class$X = NULL
+
+# IMPROVE
+noCsub_noExtreme = "IMPROVE_NoGUI_NoCsub_NoExtreme_cluster"
+data.prefix = "IMPROVE_noCsub_noExtreme_C_"
+disp.prefix = "IMPROVE_C_"
 
 
 cluster_info_all = plyr::rename(
@@ -43,8 +62,6 @@ cluster_info_all = plyr::rename(
     "SO4" = "SO4Ion",
     "PM25" = "PM2.5"))
 
-# noCsub_noExtreme = "CSN_NoGUI_NoCsub_NoExtreme_cluster"
-noCsub_noExtreme = "IMPROVE_NoGUI_NoCsub_NoExtreme_cluster"
 source_cluster = paste0("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_PMF/", 
                         noCsub_noExtreme)
 
@@ -59,14 +76,13 @@ for (cluster.No in 1:25) { # 1:25
       # Access the input file name passed as an argument
       folder_path <- paste0("Cluster_", cluster.No, "/Factor_", factor.No, "/")
       base_output = readLines(paste0(folder_path, 
-                                     # "CSN_noCsub_noExtreme_C_", 
-                                     "IMPROVE_noCsub_noExtreme_C_", 
+                                     data.prefix, 
                                      cluster.No, "_F_", factor.No,
-                                     "_.txt")) # "_base.txt"
-      # disp_output = readLines(paste0(folder_path, 
-      #                                "CSN_C_", 
-       #                              cluster.No, "_F_", factor.No,
-       #                              "_DISPres1.txt"))
+                                     "_base.txt")) # "_base.txt"
+      disp_output = readLines(paste0(folder_path, 
+                                     disp.prefix, 
+                                     cluster.No, "_F_", factor.No,
+                                     "_DISPres1.txt"))
       
       # Find the number of task when the value of Qm is the lowest
       lowest_Qm_taskNo = lowest_Qm_task(base_output)
@@ -79,22 +95,20 @@ for (cluster.No in 1:25) { # 1:25
       cluster.data.row = cluster_info$cluster.row
       
       # detect the column range for PM species & PM2.5
-      # col_comp_all = col_comp(cluster_info, "Ag", "PM2.5")
-      col_comp_all = col_comp(cluster_info, "As", "PM2.5")
+      col_comp_all = col_comp(cluster_info, "Al", "PM2.5")
       
       ## Select weak & strong variables by the value
-      # cluster.weak.strong = strong_weak(cluster_info, "Ag", "PM2.5")
-      cluster.weak.strong = strong_weak(cluster_info, "As", "PM2.5")
+      cluster.weak.strong = strong_weak(cluster_info, "Al", "PM2.5")
       cluster.w.s.count = length(cluster.weak.strong)
       
-      #cluster.strong = strong_species(cluster_info, "Ag", "PM2.5")
+      #cluster.strong = strong_species(cluster_info, "Al", "PM2.5")
       #cluster.str.count = length(cluster.strong)
       
-      #cluster.weak = weak_species(cluster_info, "Ag", "PM2.5")
+      #cluster.weak = weak_species(cluster_info, "Al", "PM2.5")
       #cluster.weak.count = length(cluster.weak)
       
       
-      ####### Extract info from PMF CMD outputs & match with date, PM #######
+      ####### Extract base info from PMF CMD outputs & match with date, PM #######
       
       # Fitted G vs. reference G & Time series
       base_info = base_results(base_output, 
@@ -120,8 +134,7 @@ for (cluster.No in 1:25) { # 1:25
       site_date_cluster = read.csv(
         file.path(
           source_cluster,
-          # paste0("CSN_noCsub_noExtreme_C_", cluster.No, "_SiteDate.csv")),
-          paste0("IMPROVE_noCsub_noExtreme_C_", cluster.No, "_SiteDate.csv")),
+          paste0(data.prefix, cluster.No, "_SiteDate.csv")),
         header = T)
       
       base_ts_plot = time_series(base_ts, site_date_cluster)$base_ts_plot
@@ -153,21 +166,28 @@ for (cluster.No in 1:25) { # 1:25
                             summarise,
                             Contribution = mean(Contribution))
       
-      # disp_down_conc = disp_analysis(disp_output)$disp_down
-      # disp_up_conc = disp_analysis(disp_output)$disp_up
-      # disp_down_conc$Species = disp_up_conc$Species = cluster.weak.strong
+      ####### Extract DISP info from PMF CMD, and validation results #######
       
-      # disp_down_percent = conc_percent_contri(disp_down_conc)
-      # disp_down_percent_plot = gather(disp_down_percent,
-      #                                "Factor", 
-      #                                "Percent.down", 
-      #                                -Species)
+      # DISP results - Credible intervals
+      disp_down_conc = disp_analysis(disp_output)$disp_down
+      disp_up_conc = disp_analysis(disp_output)$disp_up
+      disp_down_conc$Species = disp_up_conc$Species = cluster.weak.strong
       
-      #disp_up_percent = conc_percent_contri(disp_up_conc)
-      #disp_up_percent_plot = gather(disp_up_percent,
-      #                              "Factor", 
-      #                              "Percent.up", 
-      #                              -Species)
+      disp_down_percent = conc_percent_contri(disp_down_conc)
+      disp_down_percent_plot = gather(disp_down_percent,
+                                     "Factor", 
+                                     "Percent.down", 
+                                     -Species)
+      
+      disp_up_percent = conc_percent_contri(disp_up_conc)
+      disp_up_percent_plot = gather(disp_up_percent,
+                                   "Factor", 
+                                   "Percent.up", 
+                                   -Species)
+      
+      # DISP results - overall validation of results
+      disp.error.code = disp_analysis(disp_output)[[1]]
+      disp.qdrop = disp_analysis(disp_output)[[2]]
       
       
       ####### Source Assignment & Match #######
@@ -179,8 +199,8 @@ for (cluster.No in 1:25) { # 1:25
       main_source$Source.No = sapply(strsplit(main_source$Source_reference, "-"), "[", 1)
       
       conc_percent_bsDisp = merge(base_conc_plot, base_percent_plot)
-      #conc_percent_bsDisp = merge(conc_percent_bsDisp, disp_down_percent_plot)
-      #conc_percent_bsDisp = merge(conc_percent_bsDisp, disp_up_percent_plot)
+      conc_percent_bsDisp = merge(conc_percent_bsDisp, disp_down_percent_plot)
+      conc_percent_bsDisp = merge(conc_percent_bsDisp, disp_up_percent_plot)
       conc_percent_bsDisp = merge(conc_percent_bsDisp, species_class)
       conc_percent_bsDisp = merge(conc_percent_bsDisp, main_source)
       
@@ -197,8 +217,8 @@ for (cluster.No in 1:25) { # 1:25
       
       # Create a new variable for transformed Percent to match the concentration scale
       conc_percent_bsDisp_use$Trans.Percent <- log(conc_percent_bsDisp_use$Percent + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
-      #conc_percent_bsDisp_use$Trans.Percent.down <- log(conc_percent_bsDisp_use$Percent.down + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
-      #conc_percent_bsDisp_use$Trans.Percent.up <- log(conc_percent_bsDisp_use$Percent.up + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
+      conc_percent_bsDisp_use$Trans.Percent.down <- log(conc_percent_bsDisp_use$Percent.down + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
+      conc_percent_bsDisp_use$Trans.Percent.up <- log(conc_percent_bsDisp_use$Percent.up + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
       
       # Create the plot
       conc_percent_source <- 
@@ -210,9 +230,12 @@ for (cluster.No in 1:25) { # 1:25
                  stat = "identity", width = 0.6, alpha = 0.8) +
         # Point plot for transformed Percent
         geom_point(aes(y = exp(Trans.Percent)), color = "black", shape = 15) +
-        # geom_errorbar(aes(ymin = Trans.Percent.down, ymax = Trans.Percent.up), 
-        #               width = 0.4) +
+        geom_errorbar(aes(ymin = Trans.Percent.down, ymax = Trans.Percent.up), 
+                     width = 0.4) +
         facet_grid(Source_reference ~ .) +
+        ggtitle(paste0(name.prefix, 
+                       ", Error.Code = ", disp.error.code, 
+                       ", DISP.Qdrop = ", disp.qdrop)) + 
         scale_y_log10(
           name = "Concentration",
           limits = c(1e-05, 1e-01),
@@ -231,10 +254,12 @@ for (cluster.No in 1:25) { # 1:25
         them_text_speciesName +
         theme(
           panel.grid = element_line(colour = "white"),
-          plot.title = element_text(hjust = 0.05, vjust = -25, size = 16),
+          plot.title = element_text(hjust = 0.05, vjust = 0, size = 13.5),
           # strip.background = element_blank(), strip.text = element_blank(),
           legend.position = "none"
         )
+
+      # conc_percent_source
       
       #### Time-series factor percent contribution #### 
       
@@ -311,10 +336,8 @@ for (cluster.No in 1:25) { # 1:25
       
       ####### Output files #######
       
-      # name.prefix = paste0("CSN_noCsub_noExtreme_C_", cluster.No, "_F_", factor.No, "_")
-      name.prefix = paste0("IMPROVE_noCsub_noExtreme_C_", cluster.No, "_F_", factor.No, "_")
+      name.prefix = paste0(data.prefix, cluster.No, "_F_", factor.No, "_")
       
-      # ggsave(paste0(name.prefix, "source_profile.pdf"), plot = conc_percent_source, width = 6, height = 7.5)
       ggsave(paste0(name.prefix, "daily.pdf"), plot = daily_oneSite, width = 6, height = 7.5)
       ggsave(paste0(name.prefix, "month.pdf"), plot = month_cluster, width = 6, height = 7.5)
       ggsave(paste0(name.prefix, "annual.pdf"), plot = annual_cluster, width = 6, height = 7.5)
@@ -329,7 +352,13 @@ for (cluster.No in 1:25) { # 1:25
       
       write.csv(conc_percent_bsDisp_output, paste0(name.prefix, "source_profile.csv"))
       write.csv(ts_plot_output, paste0(name.prefix, "daily.csv"))
+      write.csv(ts_annual_plot, paste0(name.prefix, "annual.csv"))
+      write.csv(ts_month_plot, paste0(name.prefix, "month.csv"))
       write.csv(lm_beta_plot_output, paste0(name.prefix, "overall.csv"))
+      
+      # this one lead to unexpected error
+      ggsave(paste0(name.prefix, "source_profile.pdf"), plot = conc_percent_source, width = 6, height = 7.5)
+      
     }, error=function(e) {
       print(paste("Error at iteration", i, ":", e$message))
     })
@@ -337,89 +366,73 @@ for (cluster.No in 1:25) { # 1:25
 }
 
 
-####### Merge files ####### 
+###########################################################################
+####### Merge files and National #######
+###########################################################################
 
-library(pdftools)
+library(sf)
+library(dplyr)
+library(readr)
 
-for (cluster.No in 1:25) { # 1:25
-  for (factor.No in 6:11) { # 6:11
-    # Name pattern
-    # name.prefix = paste0("CSN_noCsub_noExtreme_C_", cluster.No, "_F_", factor.No, "_")
-    name.prefix = paste0("IMPROVE_noCsub_noExtreme_C_", cluster.No, "_F_", factor.No, "_")
-    
-    # List all PDF files that match the pattern in the working directory
-    pdf_files <- 
-      list.files(
-        pattern = paste0(name.prefix, 
-                         "*.pdf"))
-    
-    # Combine them into a single PDF
-    pdf_combine(pdf_files, 
-                output = paste0(name.prefix, 
-                                "combined.pdf"))
-    
-  }
+# Define directory (you can change this to your directory path)
+dir_path <- "/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/annual_results"
+setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/annual_results")
+
+
+##### Merge files #####
+
+# List all CSV files in the directory that end with "annual.csv"
+all_files <- list.files(dir_path, pattern = ".*annual\\.csv$", full.names = TRUE)
+
+# Filter out files that don't match the specific naming patterns
+filtered_files <- grep(".*_noCsub_noExtreme_C_\\d+_F_\\d+_annual\\.csv$", all_files, value = TRUE)
+
+# Function to read and append Dataset, Cluster, and Factor columns
+read_and_append_info <- function(file_name) {
+  df <- read.csv(file_name)
+  df$X1 = df$X = NULL
+  
+  df$SiteCode = as.character(df$SiteCode)
+  df = subset(df, Source.No != "F")
+  
+  # Extract dataset, cluster and factor numbers from the filename using regex
+  dataset_name <- gsub("([^_]*)_noCsub_noExtreme_.*", "\\1", basename(file_name))
+  cluster_num <- as.numeric(gsub(".*_C_([0-9]+)_F_.*", "\\1", file_name))
+  factor_num <- as.numeric(gsub(".*_F_([0-9]+)_.*", "\\1", file_name))
+  
+  # Add these extracted values as new columns to the dataframe
+  df$Dataset <- dataset_name
+  df$Cluster.No <- cluster_num
+  df$Factor.No <- factor_num
+  
+  return(df)
 }
 
-# List all CSV files that match the pattern in the working directory
-daily_csv_files <- list.files(pattern = "*daily.csv")
+# Apply function to each file and combine them
+combined_annual <- bind_rows(lapply(filtered_files, 
+                                    read_and_append_info))
 
-# Read and combine them into a single data frame
-combined_daily <- do.call(rbind, 
-                          lapply(daily_csv_files, 
-                                 fread))
-
-# combined_daily$X = NULL
-combined_daily$Date = as.Date(combined_daily$Date)
-
-# Write the combined CSV to a new file
-write.csv(combined_daily, 
-          file = "CSN_noCsub_noExtreme_combined_daily.csv", 
-          row.names = FALSE)
+# If you want to save the combined data
+write_csv(combined_annual, "combined_annual_data.csv")
 
 
-# List all CSV files that match the pattern in the working directory
-csv_files <- list.files(pattern = "*overall.csv")
+##### National level Plotting #####
 
-# Read and combine them into a single data frame
-combined_overall <- do.call(rbind, 
-                            lapply(csv_files, 
-                                   fread))
-
-# Write the combined CSV to a new file
-write.csv(combined_overall, 
-          file = "CSN_noCsub_noExtreme_combined_overall.csv", 
-          row.names = FALSE)
-
+combined_annual = read.csv("combined_annual_data.csv")
 cty_rural_urban = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
 cty_rural_urban$X = cty_rural_urban$X.1 = NULL
 cty_rural_urban = cty_rural_urban[!duplicated(cty_rural_urban$SiteCode), ] 
 
 
-combined_daily_use = subset(combined_daily, 
-                            Source.No != "F")
-combined_daily_use$SiteCode = as.character(combined_daily_use$SiteCode)
-
-daily_contri_gps = merge(combined_daily_use, 
+annual_contri_gps = merge(combined_annual, 
                          cty_rural_urban,
+                         by = "SiteCode",
                          all.x = T)
 
 
-site_contri_gps = ddply(daily_contri_gps, 
-                        .(SiteCode, Source_reference),
-                        summarise,
-                        Longitude = mean(Longitude),
-                        Latitude = mean(Latitude),
-                        geoid = mean(geoid),
-                        Contribution = mean(Contribution))
-
-daily_contri_gps$geoid = ifelse(daily_contri_gps$geoid < 10000, 
-                                paste0("0", daily_contri_gps$geoid), 
-                                daily_contri_gps$geoid)
-
-site_contri_gps$geoid = ifelse(site_contri_gps$geoid < 10000, 
-                                paste0("0", site_contri_gps$geoid), 
-                                site_contri_gps$geoid)
+annual_contri_gps$geoid = ifelse(annual_contri_gps$geoid < 10000, 
+                                paste0("0", annual_contri_gps$geoid), 
+                                annual_contri_gps$geoid)
 
 
 library(USAboundaries)
@@ -429,87 +442,335 @@ us_cty_bdr[, 13] = NULL # there are two "state_name"
 head(us_cty_bdr)
 us_cty_bdr_geo = dplyr::select(us_cty_bdr, geoid, stusps, geometry)
 
-daily_source_gps = merge(us_cty_bdr_geo, 
-                         daily_contri_gps)
-site_source_gps = merge(us_cty_bdr_geo, 
-                        site_contri_gps)
-
-
-site_Biomass = subset(site_source_gps, 
-                      Source_reference == "F8-Biomass")
-site_FreshSeaSalt = subset(site_source_gps, 
-                           Source_reference == "F6-Fresh Sea Salt")
-site_AgedSeaSalt = subset(site_source_gps, 
-                          Source_reference == "F4-Aged Sea Salt")
-site_SedNitrate = subset(site_source_gps, 
-                         Source_reference == "F2-Secondary Nitrate")
-site_SedSulfate = subset(site_source_gps, 
-                         Source_reference == "F3-Secondary Sulfate")
-site_SoilDust = subset(site_source_gps, 
-                       Source_reference == "F9-Soil/Dust")
-
-
 # MainStates <- map_data("state")
 UScounty <- map_data("county")
 
-site_Biomass_plot <-
-  ggplot(site_Biomass, 
-         aes(Longitude, Latitude, color= Contribution)) + 
-  geom_polygon(data=UScounty, aes(x=long, y=lat, group=group),
-               color="lightgrey", fill="white", alpha = 0.4) +
-  geom_point(size = 2, alpha = 0.6) +
-  ggtitle("Biomass") +
-  # scale_color_manual(values = npg.color[1:20]) +
-  theme_linedraw()
+us_cty_bdr = USAboundaries::us_counties()
+us_cty_bdr <- us_cty_bdr[!(us_cty_bdr$state_abbr %in% c( 'HI', 'AK', "AS", "GU", "MP", "PR", "VI")),]
 
-site_FreshSeaSalt_plot <-
-  ggplot(site_FreshSeaSalt, 
-         aes(Longitude, Latitude, color= Contribution)) + 
-  geom_polygon(data=UScounty, aes(x=long, y=lat, group=group),
-               color="lightgrey", fill="white", alpha = 0.4) +
-  geom_point(size = 2, alpha = 0.6) +
-  ggtitle("FreshSeaSalt") +
-  # scale_color_manual(values = npg.color[1:20]) +
-  theme_linedraw()
+us_states = USAboundaries::us_states()
+us_states <- us_states[!(us_states$state_abbr %in% c( 'HI', 'AK', "AS", "GU", "MP", "PR", "VI")),]
 
-site_AgedSeaSalt_plot <-
-  ggplot(site_AgedSeaSalt, 
-         aes(Longitude, Latitude, color= Contribution)) + 
-  geom_polygon(data=UScounty, aes(x=long, y=lat, group=group),
-               color="lightgrey", fill="white", alpha = 0.4) +
-  geom_point(size = 2, alpha = 0.6) +
-  ggtitle("AgedSeaSalt") +
-  # scale_color_manual(values = npg.color[1:20]) +
-  theme_linedraw()
+annual_source_gps = merge(us_cty_bdr_geo, 
+                          annual_contri_gps)
 
-site_SedNitrate_plot <-
-  ggplot(site_SedNitrate, 
-         aes(Longitude, Latitude, color= Contribution)) + 
-  geom_polygon(data=UScounty, aes(x=long, y=lat, group=group),
-               color="lightgrey", fill="white", alpha = 0.4) +
-  geom_point(size = 2, alpha = 0.6) +
-  ggtitle("SedNitrate") +
-  # scale_color_manual(values = npg.color[1:20]) +
-  theme_linedraw()
+annual_Biomass = subset(annual_source_gps, 
+                        Source_reference == "F8-Biomass")
+annual_FreshSeaSalt = subset(annual_source_gps, 
+                             Source_reference == "F6-Fresh Sea Salt")
+annual_AgedSeaSalt = subset(annual_source_gps, 
+                            Source_reference == "F4-Aged Sea Salt")
+annual_SedNitrate = subset(annual_source_gps, 
+                           Source_reference == "F2-Secondary Nitrate")
+annual_SedSulfate = subset(annual_source_gps, 
+                           Source_reference == "F3-Secondary Sulfate")
+annual_SoilDust = subset(annual_source_gps, 
+                         Source_reference == "F9-Soil/Dust")
 
-site_SedSulfate_plot <-
-  ggplot(site_SedSulfate, 
-         aes(Longitude, Latitude, color= Contribution)) + 
-  geom_polygon(data=UScounty, aes(x=long, y=lat, group=group),
-               color="lightgrey", fill="white", alpha = 0.4) +
-  geom_point(size = 2, alpha = 0.6) +
-  ggtitle("SedSulfate") +
-  # scale_color_manual(values = npg.color[1:20]) +
-  theme_linedraw()
+###### 1. Annual changes in 6 sources ######
+color_npg = pal_npg("nrc")(10)
 
-site_SoilDust_plot <-
-  ggplot(site_SoilDust, 
-         aes(Longitude, Latitude, color= Contribution)) + 
-  geom_polygon(data=UScounty, aes(x=long, y=lat, group=group),
-               color="lightgrey", fill="white", alpha = 0.4) +
-  geom_point(size = 2, alpha = 0.6) +
-  ggtitle("SoilDust") +
-  # scale_color_manual(values = npg.color[1:20]) +
-  theme_linedraw()
+ggplot(annual_source_gps,
+       aes(as.factor(Year), Contribution),
+       color = Source_reference) +
+  geom_boxplot(aes(color = Source_reference), 
+               outlier.shape = NA, 
+               linewidth = 0.3, width = 0.5) +
+  geom_jitter(aes(color = Source_reference), 
+              width = 0.15, alpha = 0.15)+
+  facet_grid(Source_reference ~., 
+             scales = "free_y") +
+  ylim(0,5) +
+  scale_y_continuous(breaks = c(0, 2, 4)) +
+  xlab("Year") +
+  scale_color_manual(values = color_npg[-c(1, 5, 7)]) +
+  theme_bw() +
+  theme(panel.grid = element_line(colour = "white"),
+        # plot.title = element_text(hjust = 0.05, vjust = -25, size = 0),
+        strip.background = element_blank(), strip.text = element_blank(),
+        legend.position = "none",
+        axis.title.x = element_text(color="grey25", size = 20, vjust=0, margin=margin(0,0,0,300)), 
+        axis.title.y = element_text(color="grey25", size = 20, vjust=1, margin=margin(0,2,0,0)),
+        plot.margin = unit(c(2,1,2, 2), "lines"),
+        axis.text.x = element_text(color="grey25", size = 18, angle = 90, hjust = 0.5, vjust = 0), 
+        axis.text.y = element_text(color="grey25", size = 18, angle = 0, hjust = 0.5))
 
 
+###### 2. Spatial distribution of sources in 2011 & 2020 ######
+
+show_col(color_npg)
+
+ggplot() +
+  geom_sf(data = us_states, fill = "grey96", alpha = 0.8) +
+  geom_point(data = subset(annual_SedNitrate, 
+                           Year %in% c(2011, 2019)), 
+             aes(x = Longitude, y = Latitude, color = Contribution), # alpha = Contribution, 
+             size = 4, alpha = 0.8) +
+  scale_alpha_continuous(range = c(0.1, 0.99), guide = "legend") +
+  scale_color_gradient(low = "white", high = color_npg[2]) +
+  coord_sf(datum = NA) +
+  facet_wrap(~Year, ncol = 1) +
+  theme_minimal() +
+  theme(panel.background = element_blank(),
+        strip.text = element_text(color = "transparent"))
+
+ggplot() +
+  geom_sf(data = us_states, fill = "grey96", alpha = 0.8) +
+  geom_point(data = subset(annual_SedSulfate, 
+                           Year %in% c(2011, 2019)), 
+             aes(x = Longitude, y = Latitude, color = Contribution),
+             size = 4, alpha = 0.8) +
+  scale_alpha_continuous(range = c(0.1, 0.99), guide = "legend") +
+  scale_color_gradient(low = "white", high = color_npg[3]) +
+  coord_sf(datum = NA) +
+  facet_wrap(~Year, ncol = 1) +
+  theme_minimal() +
+  theme(panel.background = element_blank(),
+        strip.text = element_text(color = "transparent"))
+
+ggplot() +
+  geom_sf(data = us_states, fill = "grey96", alpha = 0.8) +
+  geom_point(data = subset(annual_SoilDust, 
+                           Year %in% c(2011, 2019)), 
+             aes(x = Longitude, y = Latitude, color = Contribution),
+             size = 4, alpha = 0.8) +
+  scale_alpha_continuous(range = c(0.1, 0.99), guide = "legend") +
+  scale_color_gradient(low = "white", high = color_npg[9]) +
+  coord_sf(datum = NA) +
+  facet_wrap(~Year, ncol = 1) +
+  theme_minimal() +
+  theme(panel.background = element_blank(),
+        strip.text = element_text(color = "transparent"))
+
+
+summary(subset(annual_SedNitrate, Year == 2011)$Contribution)
+summary(subset(annual_SedNitrate, Year == 2019)$Contribution)
+summary(subset(annual_SedNitrate, Year == 2020)$Contribution)
+summary(subset(annual_SedSulfate, Year == 2011)$Contribution)
+summary(subset(annual_SedSulfate, Year == 2019)$Contribution)
+summary(subset(annual_SedSulfate, Year == 2020)$Contribution)
+summary(subset(annual_Biomass, Year == 2011)$Contribution)
+summary(subset(annual_Biomass, Year == 2019)$Contribution)
+summary(subset(annual_Biomass, Year == 2020)$Contribution)
+summary(subset(annual_FreshSeaSalt, Year == 2011)$Contribution)
+summary(subset(annual_FreshSeaSalt, Year == 2019)$Contribution)
+summary(subset(annual_FreshSeaSalt, Year == 2020)$Contribution)
+summary(subset(annual_AgedSeaSalt, Year == 2011)$Contribution)
+summary(subset(annual_AgedSeaSalt, Year == 2019)$Contribution)
+summary(subset(annual_AgedSeaSalt, Year == 2020)$Contribution)
+summary(subset(annual_SoilDust, Year == 2011)$Contribution)
+summary(subset(annual_SoilDust, Year == 2019)$Contribution)
+summary(subset(annual_SoilDust, Year == 2020)$Contribution)
+
+###### 3. Spatial distribution of Changes between 2011 & 2020 ######
+
+# Load the dplyr package
+library(dplyr)
+
+# Filter the dataset for the years 2011 and 2019
+annual_source_selectd <- annual_source_gps %>% 
+  filter(Year %in% c(2011, 2019))
+
+map_info = select(annual_source_selectd,
+                  SiteCode, Longitude, Latitude,
+                  geoid, state_abbr, geometry)
+
+# Calculate the differences in Contribution for each Source_reference and SiteCode
+contribution_diff <- 
+  annual_source_selectd %>%
+  dplyr::group_by(Source_reference, SiteCode) %>%
+  dplyr::summarise(
+    diff_contribution = ifelse(n() > 1, diff(Contribution), NA),
+    Longitude = last(Longitude),
+    Latitude = last(Latitude),
+    geoid = last(geoid),
+    state_abbr = last(state_abbr),
+    # geometry = last(geometry),
+    .groups = 'drop'  # This will automatically ungroup the data
+  )
+
+
+contribution_diff$col = contribution_diff$row = 1
+
+contribution_diff$row[
+  contribution_diff$Source_reference %in%
+    c("F6-Fresh Sea Salt", "F8-Biomass", "F9-Soil/Dust")] = 2
+
+contribution_diff$col[
+  contribution_diff$Source_reference %in%
+    c("F3-Secondary Sulfate", "F8-Biomass")] = 2
+
+contribution_diff$col[
+  contribution_diff$Source_reference %in%
+    c("F4-Aged Sea Salt", "F9-Soil/Dust")] = 3
+
+# Create a new variable to uniquely identify each facet
+contribution_diff <- contribution_diff %>%
+  mutate(facet_id = interaction(col, row, lex.order = TRUE))
+
+# Create the plot
+ggplot() +
+  geom_sf(data = us_states, fill = "grey96", alpha = 0.8) +
+  geom_point(data = contribution_diff, 
+             aes(x = Longitude, y = Latitude, alpha = diff_contribution, color = as.factor(facet_id)),
+             size = 4) +
+  scale_alpha_continuous(range = c(0.1, 0.99)) +
+  scale_color_manual(values = color_npg[-c(1, 5, 7)]) +
+  coord_sf(datum = NA) +
+  facet_wrap(facet_id ~ .) +
+  theme_minimal() +
+  theme(# strip.text = element_text(color = "transparent"),
+        panel.background = element_blank())
+
+
+ggplot() +
+  geom_sf(data = us_states, fill = "grey96", alpha = 0.8) +
+  geom_point(data = contribution_diff, 
+             aes(x = Longitude, y = Latitude, alpha = diff_contribution, color = as.factor(facet_id)),
+             size = 4) +
+  scale_alpha_continuous(range = c(0.1, 0.99)) +
+  scale_color_manual(values = color_npg[-c(1, 5, 7)]) +
+  coord_sf(datum = NA) +
+  facet_wrap(facet_id ~ .) +
+  theme_minimal() +
+  theme(# strip.text = element_text(color = "transparent"),
+    panel.background = element_blank())
+
+
+contribution_diff <- contribution_diff %>%
+  mutate(facet_id = interaction(Source_reference, col, row, lex.order = TRUE))
+
+# Create the plot
+ggplot() +
+  geom_sf(data = us_states, fill = "grey96", alpha = 0.8) +
+  geom_point(data = subset(contribution_diff, 
+                           !is.na(diff_contribution)), 
+             aes(x = Longitude, y = Latitude, 
+                 color = diff_contribution),
+             size = 2.5, alpha = 0.8) +
+  scale_color_gradient2(low = color_npg[2], 
+                        high = color_npg[8], 
+                        midpoint = 0) +
+  coord_sf(datum = NA) +
+  facet_wrap(~ facet_id, 
+             labeller = labeller(facet_id = 
+                                   as_labeller(as.character, 
+                                               default = label_value))) +
+  theme_minimal() +
+  theme(panel.background = element_blank(),
+        strip.text = element_text(color = "black", size = 16))
+
+
+###### 3. Temporal trends for differnt parts of the mainland US ######
+
+# Define the grouping for the regions using state abbreviations
+state_regions <- tibble(
+  state_abbr = c(
+    "CT", "ME", "MA", "NH", "RI", "VT", # New England
+    "NJ", "NY", "PA", # Mid-Atlantic
+    "DE", "FL", "GA", "MD", "NC", "SC", "VA", "WV", # South Atlantic
+    "AL", "KY", "MS", "TN", # East South Central
+    "AR", "LA", "OK", "TX", # West South Central
+    "IL", "IN", "MI", "OH", "WI", # East North Central
+    "IA", "KS", "MN", "MO", "NE", "ND", "SD", # West North Central
+    "AZ", "CO", "ID", "MT", "NV", "NM", "UT", "WY", # Mountain
+    "CA", "OR", "WA" # Pacific
+  ),
+  region = rep(c("New England", "Mid-Atlantic", "South Atlantic", "East South Central", 
+                 "West South Central", "East North Central", "West North Central",
+                 "Mountain", "Pacific"), c(6, 3, 8, 4, 4, 5, 7, 8, 3))
+)
+
+
+state_regions <- tibble(
+  state_abbr = c(
+    "WA", "OR", "ID", # Northwest
+    "MT", "WY", "ND", "SD", # Northern Rockies
+    "MN", "WI", "MI", "IA", "IL", # Upper Midwest
+    "VT", "NH", "ME", "MA", "CT", "RI", "NY", # Northeast
+    "CA", "NV", "UT", "CO", # West
+    "AZ", "NM", "TX", "OK", # Southwest
+    "AR", "LA", "MS", "AL", # South
+    "MO", "KS", "NE", "KY", "IN", "OH", "WV", # Ohio Valley
+    "VA", "NC", "SC", "GA", "FL", "TN", "DE", "MD" # Southeast
+  ),
+  region = rep(c("Northwest", "Northern Rockies", "Upper Midwest", "Northeast", 
+                 "West", "Southwest", "South", "Ohio Valley", "Southeast"),
+               c(3, 4, 5, 7, 4, 4, 4, 7, 8))
+)
+
+
+us_states_region = merge(us_states, state_regions)
+annual_Biomass_region = merge(annual_Biomass, state_regions)
+
+# Map
+biomass_point_region <-
+  ggplot() +
+  geom_sf(data = us_states_region, aes(fill = region), color = "white") +
+  geom_point(data = subset(annual_Biomass_region, Year %in% c(2011)), 
+             aes(x = Longitude, y = Latitude),
+             color = "white", alpha = 0.5, size = 2) +
+  theme_minimal() +
+  scale_fill_npg() +
+  theme(legend.position = "bottom") +
+  facet_wrap(~ region, ncol = 3) +
+  theme_map() +
+  theme(strip.background = element_blank(),
+        strip.text.x = element_text( size = 0))
+
+ggsave("map_points_biomass.pdf", plot = biomass_point_region, width = 16, height = 12)
+
+
+# Calculate the centroid of each region
+# Compute the centroid for each region
+region_centroids <- 
+  us_states_region %>%
+  group_by(region) %>%
+  summarize(geometry = 
+              st_centroid(st_union(geometry)), 
+            .groups = "keep")
+
+ggplot() +
+  geom_sf(data = us_states_region, aes(fill = region), 
+          color = "white") +
+  geom_point(data = subset(annual_Biomass_region, Year %in% c(2011)), 
+             aes(x = Longitude, y = Latitude),
+             color = "white", alpha = 0.5, size = 2) +
+  geom_text(data = labels_df, aes(x = x, y = y, label = region), size = 4) +
+  theme_map() +
+  scale_fill_npg() +
+  theme(legend.position = "bottom")
+
+# Temporal trends for each region
+annual_Biomass_region_plot = 
+  ddply(annual_Biomass_region, 
+        .(region, Year, Source_reference),
+        summarise,
+        med.contri = median(Contribution, na.rm = T),
+        up.contri = quantile(Contribution, 0.975),
+        down.contri = quantile(Contribution, 0.025),
+        Longitude = last(Longitude),
+        Latitude = last(Latitude),
+        geoid = last(geoid),
+        state_abbr = last(state_abbr)
+  )
+
+ggplot(annual_Biomass_region_plot, 
+       aes(x = Year, y = med.contri)) +
+  geom_line(color = "red") +
+  geom_point(shape = 3) +
+  geom_errorbar(aes(ymin = down.contri, ymax = up.contri), width = 0.2) +
+  facet_wrap(~ region, ncol = 3, scales='free') +
+  scale_x_continuous(breaks = c(2011, 2014, 2017, 2020)) +
+  # scale_y_continuous(breaks = c(0, 1, 2, 3)) +
+  labs(title = "Annual Change in Biomass Contributions for Each Region",
+       x = "Year",
+       y = "Median Contribution") +
+  # theme_minimal() +
+  theme_classic() +
+  theme(strip.background = element_blank(),
+        strip.text.x = element_text( size = 16), # facet text, face = "bold",
+        axis.text.x = element_text(size = 14, hjust = 0.5, vjust = 0), 
+        axis.text.y = element_text(size = 14, hjust = 0.5),
+        axis.title.y = element_text(size = 15, hjust = 0.5, angle = 90))
+  
