@@ -197,6 +197,13 @@ for (cluster.No in 1:25) { # 1:25
       # Source detection according to info in recent publications
       main_source = source_ref(base_percent, 5)
       main_source$Source.No = sapply(strsplit(main_source$Source_reference, "-"), "[", 1)
+      main_source$Factor_source = main_source$Factor
+      main_source$Factor_source[main_source$Source_reference != "F-"] = 
+        main_source$Source_reference[main_source$Source_reference != "F-"]
+      
+      # replace colnames in base_ts by the exact source
+      colnames(base_ts)[2:(factor.No+1)] = main_source$Factor_source
+      pairs(base_ts[, 2:(factor.No+1)], pch = 19)
       
       conc_percent_bsDisp = merge(base_conc_plot, base_percent_plot)
       conc_percent_bsDisp = merge(conc_percent_bsDisp, disp_down_percent_plot)
