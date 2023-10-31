@@ -20,6 +20,22 @@ format_variable <- function(variable) {
   return(variable)
 }
 
+# theme setting for the super or sub scripts in format_variable
+library(ggplot2)
+theme_text_speciesName = theme(axis.title.x = element_text(color="grey25", size = 12,
+                                                           family = "Arial Unicode MS", 
+                                                           vjust=0, margin=margin(0,0,0,300)), 
+                               axis.title.y = element_text(color="grey25", size = 12,
+                                                           family = "Arial Unicode MS", 
+                                                           vjust=1, margin=margin(0,2,0,0)),
+                               axis.text.x = element_text(color="grey25", size = 11,
+                                                          family = "Arial Unicode MS",
+                                                          angle = 90, hjust = 0, vjust = 0.3), plot.margin = unit(c(2,1,2, 2), "lines"),
+                               axis.text.y = element_text(color="grey25", size = 11,
+                                                          family = "Arial Unicode MS",
+                                                          angle = 0, hjust = 0.5))
+
+
 # Figures arrangement
 multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
   library(grid)
@@ -55,6 +71,75 @@ multiplot <- function(..., plotlist=NULL, file, cols=1, layout=NULL) {
                                       layout.pos.col = matchidx$col))
     }
   }
+}
+
+# Set the color for each site
+site_color = function(date_site_pair) {
+  library(RColorBrewer)
+  
+  n_sites <- length(unique(date_site_pair$SiteCode))
+  color_pal <- brewer.pal(n_sites, "Paired")
+  
+  date_site_pair$color <- color_pal[as.factor(date_site_pair$SiteCode)]
+
+  return(date_site_pair)
+}
+
+# pairs plot 1, correlation calculation
+panel.corr <- function(x, y, ...){
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  r <- round(cor(x, y), digits=2)
+  txt <- paste0("R = ", r)
+  cex.cor <- 5/strwidth(txt)
+  text(0.5, 0.5, txt, cex = cex.cor * abs(r))
+}
+
+panel.corr <- function(x, y, ...){
+  usr <- par("usr"); on.exit(par(usr))
+  par(usr = c(0, 1, 0, 1))
+  
+  # Calculate correlation and p-value
+  test <- cor.test(x, y)
+  r <- round(test$estimate, digits=2)
+  p_value <- test$p.value
+  
+  # Create correlation text and calculate size
+  txt <- paste0("R = ", r)
+  cex.cor <- 2.5/strwidth(txt)
+  
+  # Determine color based on significance of p-value
+  if (p_value < 0.05) {
+    col <- "red"
+  } else {
+    col <- "black"
+  }
+  
+  # Place the correlation text on the plot
+  text(0.5, 0.7, txt, cex = cex.cor * abs(r), col = col)
+  
+  # Create p-value text and calculate size
+  txt_p <- paste0("p = ", round(p_value, 3))
+  cex.p <- 1
+  
+  # Place the p-value text on the plot below the correlation
+  text(0.5, 0.3, txt_p, cex = cex.p, col = col)
+  
+  # Return correlation and p-value
+  return(list(correlation = r, p_value = p_value))
+}
+
+
+# !!! Important for pairs plot 1&2 is, pairs function provides only the x and y arguments to the upper.panel and lower.panel functions
+# !!! For other setting such as pch and col, take ... (ellipsis), and explicitly state them outside the function 
+
+# pairs plot 2, upper or lower panel
+panel.scatter <- function(x, y, ...){
+  points(x, y, 
+         pch=point_char, 
+         size=point_size,
+         col=adjustcolor(point_col, 
+                         alpha.f=point_alpha))
 }
 
 ##########################################################################################
@@ -403,7 +488,8 @@ time_series = function(base_ts, site_date){
   base_ts_plot$Date = as.Date(base_ts_plot$Date)
    
   # Return a list containing both data frames
-  return(list(base_ts_plot = base_ts_plot, 
+  return(list(base_ts_date = base_ts_date,
+              base_ts_plot = base_ts_plot, 
               ts_PM_lm_beta = ts_PM_lm_beta))
 }
 
@@ -416,8 +502,8 @@ conc_percent_contri = function(conc_contribution){
   all_species = data.frame(Species = conc_contribution$Species)
   percent_value = 
     signif(
-      base_conc[, -1] *100 / 
-        rowSums(base_conc[, -1]), 
+      conc_contribution[, -1] *100 / 
+        rowSums(conc_contribution[, -1]), 
       2)
   percent_contribution = cbind(all_species, 
                                percent_value)
