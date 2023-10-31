@@ -1,12 +1,6 @@
 ##clear environment
 # rm(list=ls())
 
-##set working directory
-# CSN
-# setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/CSN_base_DISPres1")
-
-# IMPROVE
-# setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/IMPROVE_base_DISPres1")
 
 getwd()
 data.dir <- "/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/results_R_data"
@@ -24,12 +18,21 @@ library(ggsci)
 library(ggpattern)
 library(ggthemes)
 library(scales)
+library(extrafont) 
+
+## extrafont{}, help make non-standard fonts accessible to the plotting devices
+font_import()
+loadfonts(device = "pdf")
 
 # library(gridExtra)
 
 ####### Read & process other files to use ####### 
 # Directory containing the CSV files you want to read
 # csv_folder <- "/projects/HAQ_LAB/tzhang/pmf_no_gui/CSN_CMD_txt_noCsub_noExtreme/other_files/"
+
+##set working directory
+# CSN
+# setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/CSN_base_DISPres1")
 
 # CSN
 cluster_info_all = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/National_SA_PMF/PMF_NoGUI_NoCsub_NoExtreme_cluster/CSN_noCsub_noExtreme_PMF_CMD_StrongWeakBad_Cluster.csv")
@@ -38,9 +41,13 @@ cluster_info_all$X = species_class$X = NULL
 
 # CSN
 noCsub_noExtreme = "CSN_NoGUI_NoCsub_NoExtreme_cluster"
-data.prefix = "CSN_noCsub_noExtreme_C_"
-disp.prefix = "CSN_C_"
+data.prefix = "CSN_noCsub_noExtreme_"
+disp.prefix = "CSN_"
 
+
+##set working directory
+# IMPROVE
+# setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/IMPROVE_base_DISPres1")
 
 # IMPROVE
 cluster_info_all = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_files_Ting/National_SA_data_prepare/IMPROVE_noCsub_noExtreme_PMF_CMD_StrongWeakBad_Cluster.csv")
@@ -49,8 +56,8 @@ cluster_info_all$X = species_class$X = NULL
 
 # IMPROVE
 noCsub_noExtreme = "IMPROVE_NoGUI_NoCsub_NoExtreme_cluster"
-data.prefix = "IMPROVE_noCsub_noExtreme_C_"
-disp.prefix = "IMPROVE_C_"
+data.prefix = "IMPROVE_noCsub_noExtreme_"
+disp.prefix = "IMPROVE_"
 
 
 cluster_info_all = plyr::rename(
@@ -71,18 +78,21 @@ source_cluster = paste0("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_PMF_f
 for (cluster.No in 1:25) { # 1:25
   for (factor.No in 6:11) { # 6:11
     
+    cluster.factor.pre = paste0("C_", cluster.No, "_F_", factor.No, "_")
+    name.prefix = paste0(data.prefix, cluster.factor.pre)
+    
     tryCatch({
       ####### Read the results from bash script ####### 
       # Access the input file name passed as an argument
       folder_path <- paste0("Cluster_", cluster.No, "/Factor_", factor.No, "/")
       base_output = readLines(paste0(folder_path, 
                                      data.prefix, 
-                                     cluster.No, "_F_", factor.No,
-                                     "_base.txt")) # "_base.txt"
+                                     cluster.factor.pre,
+                                     "base.txt")) # "_base.txt"
       disp_output = readLines(paste0(folder_path, 
                                      disp.prefix, 
-                                     cluster.No, "_F_", factor.No,
-                                     "_DISPres1.txt"))
+                                     cluster.factor.pre,
+                                     "DISPres1.txt"))
       
       # Find the number of task when the value of Qm is the lowest
       lowest_Qm_taskNo = lowest_Qm_task(base_output)
@@ -134,10 +144,11 @@ for (cluster.No in 1:25) { # 1:25
       site_date_cluster = read.csv(
         file.path(
           source_cluster,
-          paste0(data.prefix, cluster.No, "_SiteDate.csv")),
+          paste0(data.prefix, "C_", cluster.No, "_SiteDate.csv")),
         header = T)
       
       base_ts_plot = time_series(base_ts, site_date_cluster)$base_ts_plot
+      base_date_site_pair = time_series(base_ts, site_date_cluster)$base_ts_date
       ts_PM_lm_beta = time_series(base_ts, site_date_cluster)$ts_PM_lm_beta
       
       # Get annual and seasonal contributions
@@ -202,8 +213,9 @@ for (cluster.No in 1:25) { # 1:25
         main_source$Source_reference[main_source$Source_reference != "F-"]
       
       # replace colnames in base_ts by the exact source
-      colnames(base_ts)[2:(factor.No+1)] = main_source$Factor_source
-      pairs(base_ts[, 2:(factor.No+1)], pch = 19)
+      colnames(base_date_site_pair)[1:factor.No] = main_source$Factor_source
+      base_date_site_pair$Date = NULL
+      base_date_site_pair = site_color(base_date_site_pair)
       
       conc_percent_bsDisp = merge(base_conc_plot, base_percent_plot)
       conc_percent_bsDisp = merge(conc_percent_bsDisp, disp_down_percent_plot)
@@ -220,26 +232,74 @@ for (cluster.No in 1:25) { # 1:25
       ####### Plotting #######
       
       #### Source Profile - Concentration & percent contribution #### 
-      conc_percent_bsDisp_use = subset(conc_percent_bsDisp, Source.No != "F")
+      conc_percent_bsDisp_use = conc_percent_bsDisp
+      # conc_percent_bsDisp_use = subset(conc_percent_bsDisp, Source.No != "F")
       
-      # Create a new variable for transformed Percent to match the concentration scale
+      # Convert 0 to 1e-10, there is log transfer later
+      conc_percent_bsDisp_use$Concentration[conc_percent_bsDisp_use$Concentration==0] = 1e-10
+      conc_percent_bsDisp_use$Percent[conc_percent_bsDisp_use$Percent==0] = 1e-10
+      conc_percent_bsDisp_use$Percent.down[conc_percent_bsDisp_use$Percent.down==0] = 1e-10
+      conc_percent_bsDisp_use$Percent.up[conc_percent_bsDisp_use$Percent.up==0] = 1e-10
+      
+      # Convert percent values to make the scale similar to transferred contribution
+      # conc_percent_bsDisp_use$LogConcentration <- log10(conc_percent_bsDisp_use$Concentration)
       conc_percent_bsDisp_use$Trans.Percent <- log(conc_percent_bsDisp_use$Percent + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
       conc_percent_bsDisp_use$Trans.Percent.down <- log(conc_percent_bsDisp_use$Percent.down + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
       conc_percent_bsDisp_use$Trans.Percent.up <- log(conc_percent_bsDisp_use$Percent.up + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
+      
+      # Correcting any inverted values
+      inverted_rows <- conc_percent_bsDisp_use$Trans.Percent.up < conc_percent_bsDisp_use$Trans.Percent.down
+      # Swapping the values using a temporary variable
+      temp <- conc_percent_bsDisp_use$Trans.Percent.up[inverted_rows]
+      conc_percent_bsDisp_use$Trans.Percent.up[inverted_rows] <- conc_percent_bsDisp_use$Trans.Percent.down[inverted_rows]
+      conc_percent_bsDisp_use$Trans.Percent.down[inverted_rows] <- temp
+      
+      #### Step trying to identify the trans for sec.axis
+      #trans.num = log(numbers + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
+      #y.values = exp(trans.num)
+      #trans.y = log(y.values + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
+      
+      #log(exp(log(c(1e-10, 10, 20, 50, 100) + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)) + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
+      #log(exp(log(c(min(conc_percent_bsDisp_use$Percent), max(conc_percent_bsDisp_use$Percent)) + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)) + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05)
+      
+      # Define the position of the factor/source name
+      middle_positions <- 
+        conc_percent_bsDisp_use %>%
+        dplyr::group_by(Factor_source) %>%
+        dplyr::summarize(middle = median(as.numeric(sequence))) %>%
+        dplyr::arrange(Factor_source)
+      
+      middle_species = 
+        conc_percent_bsDisp_use$Species[
+          conc_percent_bsDisp_use$sequence == 
+            middle_positions$middle[1]]
+        
+      middle_positions$Species = middle_species[1]
+      
+      
+      # Set the breaks
+      log.break = 
+        log(exp(log(c(1e-10, 10, 20, 50, 100) + 1) / 
+                log(100) * 
+                (log(1e-01) - log(1e-05)) + 
+                log(1e-05)) + 1) / log(100) * 
+        (log(1e-01) - log(1e-05)) + 
+        log(1e-05)
       
       # Create the plot
       conc_percent_source <- 
         ggplot(conc_percent_bsDisp_use,
                aes(x = reorder(Species, sequence), 
-                   group = Source_reference)) +
+                   group = Factor_source)) +
         # Bar plot for Concentration
-        geom_bar(aes(y = Concentration, fill = Source_reference), 
+        geom_bar(aes(y = Concentration, fill = Factor_source), 
                  stat = "identity", width = 0.6, alpha = 0.8) +
         # Point plot for transformed Percent
         geom_point(aes(y = exp(Trans.Percent)), color = "black", shape = 15) +
-        geom_errorbar(aes(ymin = Trans.Percent.down, ymax = Trans.Percent.up), 
-                     width = 0.4) +
-        facet_grid(Source_reference ~ .) +
+        geom_errorbar(aes(ymin = exp(Trans.Percent.down), 
+                          ymax = exp(Trans.Percent.up)), 
+                      width = 0.4) +
+        facet_grid(Factor_source ~ ., switch = "y") +
         ggtitle(paste0(name.prefix, 
                        ", Error.Code = ", disp.error.code, 
                        ", DISP.Qdrop = ", disp.qdrop)) + 
@@ -248,85 +308,94 @@ for (cluster.No in 1:25) { # 1:25
           limits = c(1e-05, 1e-01),
           breaks = c(1e-05, 1e-04, 1e-03, 1e-02, 1e-01),
           labels = c(1e-05, 1e-04, 1e-03, 1e-02, 1e-01),
-          sec.axis = sec_axis(trans = ~log(. + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05),
-                              name = "% of Species",
-                              breaks = log(c(1, 10, 20, 50, 99) + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05),
-                              labels = c(0, 10, 20, 50, 99))) +
+          sec.axis = sec_axis(
+            trans = ~ log(. + 1) / log(100) * (log(1e-01) - log(1e-05)) + log(1e-05),
+            name = "% of Species",
+            breaks = log.break,
+            labels = c(0, 10, 20, 50, 100)
+          )
+        ) +
         scale_y_continuous(trans = mylog_trans(base=10, from=-5),
                            limits = c(1E-5, max(conc_percent_bsDisp$Concentration))) +
         scale_fill_npg() +
-        theme_bw() +
         xlab(format_variable("PM25 Species")) +
         scale_x_discrete(labels = function(x) format_variable(x)) +
-        them_text_speciesName +
+        geom_text(data = middle_positions, size = 4,
+                  aes(x = Species, y = 1e-01, label = Factor_source), 
+                  inherit.aes = FALSE, vjust = -0.2, hjust = 0.5) + # , fontface = "bold"
+        theme_bw() +
+        theme_text_speciesName +
         theme(
           panel.grid = element_line(colour = "white"),
           plot.title = element_text(hjust = 0.05, vjust = 0, size = 13.5),
-          # strip.background = element_blank(), strip.text = element_blank(),
+          strip.background = element_blank(), strip.text = element_blank(),
           legend.position = "none"
         )
 
       # conc_percent_source
-      
+        
       #### Time-series factor percent contribution #### 
       
       #### Daily
-      daily_plot_use = subset(ts_plot, Source.No != "F")
+      # daily_plot_use = subset(ts_plot, Source.No != "F")
+      daily_plot_use = ts_plot
       
       daily_oneSite <- 
         ggplot(subset(daily_plot_use,
                       SiteCode = unique(daily_plot_use$SiteCode)[2]), 
                # ggplot(daily_plot_use,
                aes(x = Date, y = Contribution, 
-                   group = Source_reference, color = Source_reference)) +
-        facet_grid(Source_reference ~., scales = "free_y") +
+                   group = Factor_source, color = Factor_source)) +
+        facet_grid(Factor_source ~., scales = "free_y") +
         geom_line(linewidth = 0.3, alpha = 0.8)+
         geom_point(size = 0.3, alpha = 0.4) +
         scale_color_npg() +
         theme.ts
       
       #### Annual
-      annual_plot_use = subset(ts_annual_plot, Source.No != "F")
+      # annual_plot_use = subset(ts_annual_plot, Source.No != "F")
+      annual_plot_use = ts_annual_plot
       
       annual_cluster <- 
         #  ggplot(subset(annual_plot_use,
         #                SiteCode = unique(annual_plot_use$SiteCode)[2]), 
         ggplot(annual_plot_use,
                aes(x = as.factor(Year), y = Contribution, 
-                   color = Source_reference)) +
-        facet_grid(Source_reference ~., scales = "free_y") +
+                   color = Factor_source)) +
+        facet_grid(Factor_source ~., scales = "free_y") +
         geom_boxplot(linewidth = 0.3, width = 0.5, alpha = 0.8) +
         scale_color_npg() +
         theme.ts
       
       #### Month
-      month_plot_use = subset(ts_month_plot, Source.No != "F")
+      # month_plot_use = subset(ts_month_plot, Source.No != "F")
+      month_plot_use = ts_month_plot
       
       month_cluster <- 
         #  ggplot(subset(month_plot_use,
         #                SiteCode = unique(month_plot_use$SiteCode)[2]), 
         ggplot(month_plot_use,
                aes(x = as.factor(Month), y = Contribution, 
-                   color = Source_reference)) +
-        facet_grid(Source_reference ~., scales = "free_y") +
+                   color = Factor_source)) +
+        facet_grid(Factor_source ~., scales = "free_y") +
         geom_boxplot(linewidth = 0.3, width = 0.5, alpha = 0.8) +
         scale_color_npg() +
         theme.ts
       
       #### Overall factor percent contribution #### 
-      lm_beta_plot_use = subset(lm_beta_plot, 
-                                Source.No != "F")
+      # lm_beta_plot_use = subset(lm_beta_plot, Source.No != "F")
+      lm_beta_plot_use = lm_beta_plot
       
       overall_contri <-
         ggplot(lm_beta_plot_use, 
-               aes(x = Source.No, y = Factor.contribution)) +
-        geom_bar_pattern(aes(fill = Source.No),
+               aes(x = Factor, y = Factor.contribution)) +
+        geom_bar_pattern(aes(fill = Factor),
                          stat = "identity",
                          pattern_color = "white",
                          pattern_fill = "white",
                          # alpha = 0.8,
                          width = 0.3)  +
-        geom_text(aes(label = paste(Source_reference, Factor.contr)), 
+        geom_text(aes(label = paste(Factor_source, Factor.contr)), 
                   size = 6, angle = 90, hjust = 0, vjust = -3,
                   position = position_stack(vjust = 0)) + # start from same bottom level
         scale_fill_npg() +
@@ -341,9 +410,24 @@ for (cluster.No in 1:25) { # 1:25
               axis.title.x = element_text(color="grey25", size = 22, angle = 180, hjust = 0.5),
               axis.title.y = element_text(color="grey25", size = 0, angle = -90, vjust = -1))
       
-      ####### Output files #######
+      ####### Pairs: between-factor scattor & correlation #######
       
-      name.prefix = paste0(data.prefix, cluster.No, "_F_", factor.No, "_")
+      # Use captured pch and col outside the function 
+      point_char = 19
+      point_size = 1
+      point_alpha = 0.3
+      point_col <- base_date_site_pair$color
+      
+      pdf(paste0(name.prefix, "factor_pairs.pdf"))
+      
+      pairs(base_date_site_pair[, 1:factor.No], 
+            upper.panel = panel.scatter,
+            lower.panel = panel.corr,
+            main = name.prefix)
+      
+      dev.off()
+      
+      ####### Output files #######
       
       ggsave(paste0(name.prefix, "daily.pdf"), plot = daily_oneSite, width = 6, height = 7.5)
       ggsave(paste0(name.prefix, "month.pdf"), plot = month_cluster, width = 6, height = 7.5)
@@ -364,6 +448,11 @@ for (cluster.No in 1:25) { # 1:25
       write.csv(lm_beta_plot_output, paste0(name.prefix, "overall.csv"))
       
       # this one lead to unexpected error
+      pdf(paste0(name.prefix, "source_profile_2.pdf"))
+      conc_percent_source
+      dev.off()
+      
+      
       ggsave(paste0(name.prefix, "source_profile.pdf"), plot = conc_percent_source, width = 6, height = 7.5)
       
     }, error=function(e) {
@@ -374,7 +463,7 @@ for (cluster.No in 1:25) { # 1:25
 
 
 ###########################################################################
-####### Merge files and National #######
+####### Merge files and National - Annual #######
 ###########################################################################
 
 library(sf)
@@ -780,4 +869,135 @@ ggplot(annual_Biomass_region_plot,
         axis.text.x = element_text(size = 14, hjust = 0.5, vjust = 0), 
         axis.text.y = element_text(size = 14, hjust = 0.5),
         axis.title.y = element_text(size = 15, hjust = 0.5, angle = 90))
+
+###########################################################################
+####### Merge files and National - Month #######
+###########################################################################
+
+library(sf)
+library(dplyr)
+library(readr)
+
+# Define directory (you can change this to your directory path)
+dir_path <- "/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/month_results"
+setwd("/Users/TingZhang/Documents/HEI HAQ PMF/PMF_Results/PMF_nonGUI_Cluster/month_results")
+
+
+##### Merge files #####
+
+# List all CSV files in the directory that end with "month.csv"
+all_files <- list.files(dir_path, pattern = ".*month\\.csv$", full.names = TRUE)
+
+# Filter out files that don't match the specific naming patterns
+filtered_files <- grep(".*_noCsub_noExtreme_C_\\d+_F_\\d+_month\\.csv$", all_files, value = TRUE)
+
+# Function to read and append Dataset, Cluster, and Factor columns
+read_and_append_info <- function(file_name) {
+  df <- read.csv(file_name)
+  df$X1 = df$X = NULL
+  
+  df$SiteCode = as.character(df$SiteCode)
+  df = subset(df, Source.No != "F")
+  
+  # Extract dataset, cluster and factor numbers from the filename using regex
+  dataset_name <- gsub("([^_]*)_noCsub_noExtreme_.*", "\\1", basename(file_name))
+  cluster_num <- as.numeric(gsub(".*_C_([0-9]+)_F_.*", "\\1", file_name))
+  factor_num <- as.numeric(gsub(".*_F_([0-9]+)_.*", "\\1", file_name))
+  
+  # Add these extracted values as new columns to the dataframe
+  df$Dataset <- dataset_name
+  df$Cluster.No <- cluster_num
+  df$Factor.No <- factor_num
+  
+  return(df)
+}
+
+# Apply function to each file and combine them
+combined_month <- bind_rows(lapply(filtered_files, 
+                                    read_and_append_info))
+
+# If you want to save the combined data
+write_csv(combined_month, "combined_month_data.csv")
+
+
+##### National level Plotting #####
+
+combined_month = read.csv("combined_month_data.csv")
+cty_rural_urban = read.csv("/Users/TingZhang/Library/CloudStorage/Dropbox/HEI_US_PMF/CSN_IMPROVE_comp/IMPROVE_CSN_PopDensity_Urban_Rural_classify_331sites.csv")
+cty_rural_urban$X = cty_rural_urban$X.1 = NULL
+cty_rural_urban = cty_rural_urban[!duplicated(cty_rural_urban$SiteCode), ] 
+
+
+month_contri_gps = merge(combined_month, 
+                          cty_rural_urban,
+                          by = "SiteCode",
+                          all.x = T)
+
+
+month_contri_gps$geoid = ifelse(month_contri_gps$geoid < 10000, 
+                                 paste0("0", month_contri_gps$geoid), 
+                                 month_contri_gps$geoid)
+
+
+library(USAboundaries)
+# generate the US county boundary data
+us_cty_bdr = USAboundaries::us_counties()
+us_cty_bdr[, 13] = NULL # there are two "state_name"
+head(us_cty_bdr)
+us_cty_bdr_geo = dplyr::select(us_cty_bdr, geoid, stusps, geometry)
+
+# MainStates <- map_data("state")
+UScounty <- map_data("county")
+
+us_cty_bdr = USAboundaries::us_counties()
+us_cty_bdr <- us_cty_bdr[!(us_cty_bdr$state_abbr %in% c( 'HI', 'AK', "AS", "GU", "MP", "PR", "VI")),]
+
+us_states = USAboundaries::us_states()
+us_states <- us_states[!(us_states$state_abbr %in% c( 'HI', 'AK', "AS", "GU", "MP", "PR", "VI")),]
+
+month_source_gps = merge(us_cty_bdr_geo, 
+                          month_contri_gps)
+
+month_Biomass = subset(month_source_gps, 
+                        Source_reference == "F8-Biomass")
+month_FreshSeaSalt = subset(month_source_gps, 
+                             Source_reference == "F6-Fresh Sea Salt")
+month_AgedSeaSalt = subset(month_source_gps, 
+                            Source_reference == "F4-Aged Sea Salt")
+month_SedNitrate = subset(month_source_gps, 
+                           Source_reference == "F2-Secondary Nitrate")
+month_SedSulfate = subset(month_source_gps, 
+                           Source_reference == "F3-Secondary Sulfate")
+month_SoilDust = subset(month_source_gps, 
+                         Source_reference == "F9-Soil/Dust")
+
+
+###### 1. Month changes in 6 sources ######
+color_npg = pal_npg("nrc")(10)
+
+ggplot(month_source_gps,
+       aes(as.factor(Month), Contribution),
+       color = Source_reference) +
+  geom_boxplot(aes(color = Source_reference), 
+               outlier.shape = NA, 
+               linewidth = 0.3, width = 0.5) +
+  geom_jitter(aes(color = Source_reference), 
+              width = 0.15, alpha = 0.15)+
+  facet_grid(Source_reference ~., 
+             scales = "free_y") +
+  ylim(0,5) +
+  scale_y_continuous(breaks = c(0, 2, 4)) +
+  xlab("Month") +
+  scale_color_manual(values = color_npg[-c(1, 5, 7)]) +
+  theme_bw() +
+  theme(panel.grid = element_line(colour = "white"),
+        # plot.title = element_text(hjust = 0.05, vjust = -25, size = 0),
+        strip.background = element_blank(), strip.text = element_blank(),
+        legend.position = "none",
+        axis.title.x = element_text(color="grey25", size = 20, vjust=0, margin=margin(0,0,0,300)), 
+        axis.title.y = element_text(color="grey25", size = 20, vjust=1, margin=margin(0,2,0,0)),
+        plot.margin = unit(c(2,1,2, 2), "lines"),
+        axis.text.x = element_text(color="grey25", size = 18, angle = 0, hjust = 0.5, vjust = 0), 
+        axis.text.y = element_text(color="grey25", size = 18, angle = 0, hjust = 0.5))
+
   
