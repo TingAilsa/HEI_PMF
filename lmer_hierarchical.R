@@ -104,6 +104,24 @@ hier_PMsource <- lmer(Contribution ~ Source_reference * Year + # Source_referenc
                         (1|SiteCode), 
                       data = nm_annual_source)
 
+hier_SecNitrate <- lmer(Contribution ~ 0 + Year + # 0, remove global intercept
+                          Longitude * Latitude * RuralUrban + 
+                          (1|SiteCode), 
+                        data = subset(nm_annual_source, 
+                                      Source_reference == "F2-Secondary Nitrate"))
+
+hier_SecSulfate <- lmer(Contribution ~ 0 + Year + # 0, remove global intercept
+                          Longitude * Latitude * RuralUrban + 
+                          (1|SiteCode), 
+                        data = subset(nm_annual_source, 
+                                      Source_reference == "F3-Secondary Sulfate"))
+
+hier_Biomass <- lmer(Contribution ~ 0 + Year + # 0, remove global intercept
+                          Longitude * Latitude * RuralUrban + 
+                          (1|SiteCode), 
+                        data = subset(nm_annual_source, 
+                                      Source_reference == "F8-Biomass"))
+
 # global slope
 # remove global intercept
 # Year * Region trend
