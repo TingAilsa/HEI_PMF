@@ -33,19 +33,19 @@ Top_5noCsub_source = read.csv("/Users/ztttttt/Dropbox/HEI_PMF_files_Ting/SPECIAT
 Top_5species_source$X = Top_5Element_source$X = Top_5noCsub_source$X = NULL
 
 ##
-them_text_speciesName = theme(axis.title.x = element_text(color="grey25", size = 12,
-                                                          family = "Arial Unicode MS", 
-                                                          vjust=0, margin=margin(0,0,0,300)), 
-                              axis.title.y = element_text(color="grey25", size = 12,
-                                                          family = "Arial Unicode MS", 
-                                                          vjust=1, margin=margin(0,2,0,0)),
-                              axis.text.x = element_text(color="grey25", size = 11,
-                                                         family = "Arial Unicode MS",
-                                                         angle = 90, hjust = 0, vjust = 0.3), plot.margin = unit(c(2,1,2, 2), "lines"),
-                              axis.text.y = element_text(color="grey25", size = 11,
-                                                         family = "Arial Unicode MS",
-                                                         angle = 0, hjust = 0.5))
-                              
+theme_text_speciesName = theme(axis.title.x = element_text(color="grey25", size = 12,
+                                                           family = "Arial Unicode MS", 
+                                                           vjust=0, margin=margin(0,0,0,300)), 
+                               axis.title.y = element_text(color="grey25", size = 12,
+                                                           family = "Arial Unicode MS", 
+                                                           vjust=1, margin=margin(0,2,0,0)),
+                               axis.text.x = element_text(color="grey25", size = 11,
+                                                          family = "Arial Unicode MS",
+                                                          angle = 90, hjust = 0, vjust = 0.3), plot.margin = unit(c(2,1,2, 2), "lines"),
+                               axis.text.y = element_text(color="grey25", size = 11,
+                                                          family = "Arial Unicode MS",
+                                                          angle = 0, hjust = 0.5))
+
 
 ####### for bar start from a value less than 0 ####### 
 # https://stackoverflow.com/questions/22295253/force-bars-to-start-from-a-lower-value-than-0-in-ggplot-geom-bar-in-r
